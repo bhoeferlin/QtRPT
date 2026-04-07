@@ -1,12 +1,12 @@
 /*
 Name: XYZ
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,33 +22,41 @@ limitations under the License.
 */
 
 #include "XYZ_Label.h"
+#include <QDebug>
 
-XYZLabel::XYZLabel(QWidget *parent) : QLabel(parent) {
+XYZ_Label::XYZ_Label(QWidget *parent)
+    : QLabel(parent)
+{
     m_bHover = false;
     setCursor(Qt::PointingHandCursor);
 }
 
-XYZLabel::XYZLabel(const QString &Text, QWidget *parent) : QLabel(Text, parent) {
+XYZ_Label::XYZ_Label(const QString &Text, QWidget *parent)
+    : QLabel(Text, parent)
+{
     m_bHover = false;
     setCursor(Qt::PointingHandCursor);
 }
 
-XYZLabel::~XYZLabel() {
-}
+XYZ_Label::~XYZ_Label()
+{}
 
-void XYZLabel::setHoverText(bool bHover) {
+void XYZ_Label::setHoverText(bool bHover)
+{
     m_bHover = bHover;
 }
 
-void XYZLabel::enterEvent(QEvent *) {
-    if( m_bHover ) {
+void XYZ_Label::enterEvent(QEvent *)
+{
+    if (m_bHover) {
         QFont font = this->font();
         font.setUnderline(m_bHover);
         setFont(font);
     }
 }
 
-void XYZLabel::leaveEvent(QEvent *) {
+void XYZ_Label::leaveEvent(QEvent *)
+{
     if( m_bHover ) {
         QFont font = this->font();
         font.setUnderline(false);
@@ -56,6 +64,35 @@ void XYZLabel::leaveEvent(QEvent *) {
     }
 }
 
-void XYZLabel::mouseReleaseEvent(QMouseEvent *) {
+void XYZ_Label::mousePressEvent(QMouseEvent *)
+{
+    //emit clicked();
+}
+
+void XYZ_Label::mouseDoubleClickEvent(QMouseEvent *)
+{
+    emit doubleClicked();
+    qDebug() << "DBL";
+}
+
+void XYZ_Label::mouseReleaseEvent(QMouseEvent *)
+{
     emit clicked();
+    /*qDebug() << "---------";
+    if (timer.isActive())
+    {
+        timer.stop();
+        emit doubleClicked();
+        qDebug() << "DBL---------";
+    }
+    else
+    {	
+        timer.start(200, this);
+    }*/
+}
+
+void XYZ_Label::timerEvent(QTimerEvent *)
+{
+    timer.stop();
+	emit clicked();
 }

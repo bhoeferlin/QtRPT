@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,23 +22,29 @@ limitations under the License.
 */
 
 #include <QApplication>
+#include <QDebug>
 #include "mainwindow.h"
+
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     a.setApplicationName(QApplication::tr("QtRptDesigner"));
-    a.setOrganizationName("Aleksey Osipov");
+    a.setOrganizationName("Oleksii Osypov");
     a.setOrganizationDomain("https://sourceforge.net/projects/qtrpt/");  //projects web page
-    a.setApplicationVersion("2.0.0");
+    a.setApplicationVersion("3.1.1");
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
     QTextCodec *codec = QTextCodec::codecForName("UTF8");
     QTextCodec::setCodecForLocale(codec);
+#endif
 
     QTranslator qTranslator;
     QString locale = QLocale::system().name(); //reading system locale
     QString loSettings;
     QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
     settings.beginGroup("language");
     loSettings = settings.value("language").toString();
     settings.endGroup();
@@ -47,17 +53,29 @@ int main(int argc, char *argv[]) {
         locale = loSettings;
     //! NOTE: windows and linux system locale are different for serbian language, sr_RS is latin not cyril, this differenc is corrected in code
 
-    if ( qTranslator.load(":/language/i18n/QtRprtDesigner_"+locale+".qm") ) { a.installTranslator(&qTranslator); }
-
+    if ( qTranslator.load(":/language/i18n/QtRprtDesigner_"+locale+".qm") ) {
+        a.installTranslator(&qTranslator);
+    }
     //NOTE: Arabic language is the same for all Arabic countries (ex. ar_SY = ar_LY) for that we've to use language name instaed of locale name
 
     if (locale.left(2) == "ar") {
         a.setLayoutDirection(Qt::RightToLeft);
     }
 
+    QStringList args = a.arguments();
+    MainWindow w(args);
 
-    MainWindow w;
-    w.show();
+    if (w.property("AllowStart").toBool()) {
+        if (args.count() > 1) {
+            w.runSilentMode();
+            a.exit(0);
+            return 0;
+        } else
+            w.show();
 
-    return a.exec();
+        return a.exec();
+    } else {
+        a.exit(0);
+        return 0;
+    }
 }

@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,21 +27,37 @@ limitations under the License.
 #include <QSettings>
 #include <QScrollBar>
 
-RepScrollArea::RepScrollArea(QWidget *parent) : QScrollArea(parent), ui(new Ui::RepScrollArea) {
+RepScrollArea::RepScrollArea(QTreeWidgetItem* rootItem, QWidget *parent)
+: QScrollArea(parent), ui(new Ui::RepScrollArea)
+{
     ui->setupUi(this);
     m_mainWindow = parent;
+    m_rootItem = rootItem;
+
     auto bar = verticalScrollBar();
     QObject::connect(bar, SIGNAL(valueChanged(int)), this, SLOT(vScrolling(int)));
 
     scene = new GraphicsScene(this);
     scene->setSceneRect(0,0,800,800);
     QObject::connect(scene, SIGNAL(sceneClick()), m_mainWindow, SLOT(sceneClick()));
-    QObject::connect(scene, SIGNAL(itemAdded(QGraphicsItem *)), m_mainWindow, SLOT(generateName(QGraphicsItem *)));
+    QObject::connect(scene, SIGNAL(itemAdded(QGraphicsItem *)), m_mainWindow, SLOT(sceneItemAdded(QGraphicsItem *)));
     QObject::connect(scene, SIGNAL(itemSelected(QGraphicsItem *)), m_mainWindow, SLOT(sceneItemSelectionChanged(QGraphicsItem *)));
-    QObject::connect(scene, SIGNAL(itemDeleting(QGraphicsItem *, QTreeWidgetItem *)),
-                     m_mainWindow, SLOT(delItemInTree(QGraphicsItem *, QTreeWidgetItem *)));
+
+    QObject::connect(scene, SIGNAL(itemResized(QGraphicsItem *)), m_mainWindow, SLOT(itemResizing(QGraphicsItem *)));
+    QObject::connect(scene, SIGNAL(mousePos(QPointF)), m_mainWindow, SLOT(mousePos(QPointF)));
+
+    auto actShowGrid = m_mainWindow->findChild<QAction*>("actShowGrid");
+    QObject::connect(actShowGrid, SIGNAL(triggered(bool)), this, SLOT(showGrid(bool)));
+
+    auto actUndo = m_mainWindow->findChild<QAction*>("actUndo");
+    QObject::connect(scene->m_undoStack, SIGNAL(canUndoChanged(bool)), actUndo, SLOT(setEnabled(bool)));
+
+    auto actRedo = m_mainWindow->findChild<QAction*>("actRedo");
+    QObject::connect(scene->m_undoStack, SIGNAL(canRedoChanged(bool)), actRedo, SLOT(setEnabled(bool)));
+
     ui->graphicsView->setContentsMargins(0,0,0,0);
     ui->graphicsView->setScene(scene);
+    //ui->graphicsView->setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
     //ui->graphicsView->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     //ui->graphicsView->setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
 
@@ -54,12 +70,13 @@ RepScrollArea::RepScrollArea(QWidget *parent) : QScrollArea(parent), ui(new Ui::
     pageSetting.pageOrientation = 0;
     pageSetting.border          = false;
     pageSetting.borderWidth     = 1;
+    pageSetting.watermark       = false;
 
     this->setMouseTracking(true);
     this->installEventFilter(parent);
     scene->installEventFilter(parent);
     
-	ui->horRuler->installEventFilter(this);
+    ui->horRuler->installEventFilter(this);
     ui->verRuler->installEventFilter(this);
 
     this->setVisible(true);
@@ -70,29 +87,37 @@ RepScrollArea::RepScrollArea(QWidget *parent) : QScrollArea(parent), ui(new Ui::
     QGraphicsDropShadowEffect* effect = new QGraphicsDropShadowEffect();
     effect->setBlurRadius(5);
     ui->graphicsView->setGraphicsEffect(effect);
+
+    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
+    bool isShowGrid = settings.value("ShowGrid",true).toBool();
+    showGrid(isShowGrid);
 }
 
-void RepScrollArea::vScrolling(int value) {
+void RepScrollArea::vScrolling(int value)
+{
     Q_UNUSED(value);
     scene->update();
 }
 
-double RepScrollArea::setPaperSize(qreal scale) {
+double RepScrollArea::setPaperSize(qreal scale)
+{
     if (scale == 0) {
         m_scale = 1;
     } else {
-        if (qFabs(scale) > 1) { //Change zoom from combobox
+        if (qFabs(scale) > 1) {  //Change zoom from combobox
             m_scale = scale/100;
             if (m_scale < 0.5) return -1;
-        } else {                //Change zoom from wheel or click mouse
-            if (scale>0) {
-                m_scale+=0.25;
-            } else {
-                m_scale+=-0.25;
-            }
+        } else {  //Change zoom from wheel or click mouse
+            if (scale>0)
+                m_scale += 0.25;
+            else
+                m_scale += -0.25;
         }
 
-        if (m_scale < 0.5) { //Not allow zoom less than 50%
+        if (m_scale < 0.5) {  //Not allow zoom less than 50%
             m_scale = 0.5;
             return -1;
         }
@@ -103,8 +128,13 @@ double RepScrollArea::setPaperSize(qreal scale) {
                       pageSetting.marginsTop,
                       pageSetting.marginsBottom);
 
+    scene->setSceneRect(0, 0, pageSetting.pageWidth, pageSetting.pageHeight);
+
+
+
     ui->graphicsView->setMinimumWidth(pageSetting.pageWidth*m_scale);
     ui->graphicsView->setMinimumHeight(pageSetting.pageHeight*m_scale);
+    ui->graphicsView->resize(pageSetting.pageWidth*m_scale, pageSetting.pageHeight*m_scale);
     ui->leftMarginsSpacer->changeSize(pageSetting.marginsLeft*m_scale+26,
                                       ui->leftMarginsSpacer->sizeHint().height(),
                                       QSizePolicy::Fixed,
@@ -115,47 +145,52 @@ double RepScrollArea::setPaperSize(qreal scale) {
 
     getKoef();
 
+    correctBandGeom();
+
     return m_scale;
 }
 
-void RepScrollArea::setScale(const QString &scale) {
+void RepScrollArea::setScale(const QString &scale)
+{
     double newScale = scale.left(scale.indexOf(tr("%"))).toDouble() ;/// 100.0;
     setPaperSize(newScale);
 
-    QMatrix oldMatrix = ui->graphicsView->matrix();
-    ui->graphicsView->resetMatrix();
-    ui->graphicsView->translate(oldMatrix.dx(), oldMatrix.dy());
+    QTransform oldTransform = ui->graphicsView->transform();
+    ui->graphicsView->resetTransform();
+    ui->graphicsView->translate(oldTransform.dx(), oldTransform.dy());
     ui->graphicsView->scale(newScale/100, newScale/100);
+    correctBandGeom(nullptr);
 }
 
-qreal RepScrollArea::getScale() {
+qreal RepScrollArea::getScale()
+{
     return m_scale;
 }
 
-QList<QGraphicsItem *> RepScrollArea::getReportItems() {
-    return scene->items();
-}
-
-void RepScrollArea::clearReport() {
+void RepScrollArea::clearReport()
+{
     m_scale = 1;
     setPaperSize(100);
     scene->clear();
     scene->update();
 }
 
-bool RepScrollArea::allowField() {
-    bool hasBand = false;
-    for(auto item : scene->items()){
-        if (item->type() == ItemType::GBand) hasBand = true;
-    }
-    return hasBand;
+bool RepScrollArea::allowField()
+{
+    for (auto &item : scene->items())
+        if (item->type() == ItemType::GBand)
+            return true;
+
+    return false;
 }
 
-void RepScrollArea::showGrid(bool value) {
+void RepScrollArea::showGrid(bool value)
+{
     QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
     settings.setValue("ShowGrid", value);
-    this->isShowGrid = value;
     scene->isShowGrid = value;
     scene->setGridStep(settings.value("GridStep",1).toDouble());
     scene->setMargins(pageSetting.marginsLeft,
@@ -163,66 +198,69 @@ void RepScrollArea::showGrid(bool value) {
                       pageSetting.marginsTop,
                       pageSetting.marginsBottom);
     getKoef();
-    scene->setMesKoef(koef);
+    scene->setMesKoef(m_koef);
+    scene->update();
 }
 
-void RepScrollArea::getKoef() {
+void RepScrollArea::getKoef()
+{
     QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
-
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
     settings.beginGroup("language");
     QString measurement = settings.value("measurement").toString();
     settings.endGroup();
 
     if (measurement == "")
-        koef = 40;
+        m_koef = 40;
     else if (measurement == "Cm")
-        koef = 40;
+        m_koef = 40;
     else if (measurement == "Inch")
-        koef = 101.59;
-    koef = koef*m_scale;
+        m_koef = 101.59;
+    m_koef = m_koef * m_scale;
 }
 
-void RepScrollArea::paintHorRuler() {
+void RepScrollArea::paintHorRuler()
+{
     getKoef();
     QPainter painter(ui->horRuler);
-    double x_=0 ;
+    double x_ = 0 ;
     bool showNum = false;
     while ( x_ < ui->horRuler->width() ) {
-        x_ = x_+koef/2;
+        x_ = x_ + m_koef/2;
         if (showNum) {
             if (this->isLeftToRight()) {
-                const QString rt = QString::number(x_/koef);
+                const QString rt = QString::number(x_/m_koef);
                 painter.drawText(x_,15,rt);
             }
             if (this->isRightToLeft()) {
-                const QString rt = QString::number(x_/koef);
+                const QString rt = QString::number(x_/m_koef);
                 painter.drawText(ui->horRuler->width() - x_,15,rt);
             }
         } else {
             if (m_scale > 0.5) {
-                if (this->isLeftToRight()) {
+                if (this->isLeftToRight())
                     painter.drawText(x_,15,"-");
-                }
-                if (this->isRightToLeft()) {
+                if (this->isRightToLeft())
                     painter.drawText(ui->horRuler->width() - x_,15,"-");
-                }
             }
         }
         showNum=!showNum;
     }
 }
 
-void RepScrollArea::paintVerRuler() {
+void RepScrollArea::paintVerRuler()
+{
     getKoef();
     QPainter painter(ui->verRuler);
-    double y_ =0 ;
+    double y_ = 0 ;
     painter.rotate(-90);
     bool showNum = false;
     while ( y_ < ui->verRuler->height() ) {
-        y_ = y_+koef/2;
+        y_ = y_ + m_koef/2;
         if (showNum) {
-            const QString rt = QString::number(y_/koef);
+            const QString rt = QString::number(y_/m_koef);
             painter.drawText(-y_,15,rt);
         } else {
             if (m_scale > 0.5)
@@ -232,27 +270,92 @@ void RepScrollArea::paintVerRuler() {
     }
 }
 
-ReportBand *RepScrollArea::m_addBand(BandType type, QMenu *bandMenu, int m_height) {
-    QMenu m_bandMenu;
-    for(auto action : bandMenu->actions()) {
-        if (type == DataGroupHeader) {
-            m_bandMenu.addAction(action);
-        } else {
-            if (action->objectName() != "actGroupProperty") {
-                m_bandMenu.addAction(action);
+void RepScrollArea::assignBandParam(BandType bandType, int &bandNo, int &lvl, QString &objName)
+{
+    bool ready = false;
+
+    while (ready == false) {
+        bool found = false;
+        for (auto &band : getReportBands()) {
+            if (bandType != DataGroupFooter && band->bandType == bandType && band->bandNo == bandNo ) {
+                found = true;
+                break;
             }
+
+            if (bandType == DataGroupFooter && band->bandType == bandType && band->bandNo == bandNo && band->getGroupLevel() == lvl) {
+                found = true;
+            }
+        }
+
+        if (found && bandType != DataGroupFooter) {
+            bandNo++;
+        } else if (found && bandType == DataGroupFooter) {
+            if (lvl < 2)
+                lvl++;
+            else {
+                bandNo++;
+                lvl = 0;
+            }
+        } else {
+            ready = true;
         }
     }
 
-    ReportBand *reportBand = new ReportBand(type);
+    if (bandType == ReportTitle)
+        objName = QString("RepTitleBand%1").arg(bandNo);
+    if (bandType == ReportSummary)
+        objName = QString("ReportSummaryBand%1").arg(bandNo);
+    if (bandType == PageHeader)
+        objName = QString("PageHeaderBand%1").arg(bandNo);
+    if (bandType == PageFooter)
+        objName = QString("PageFooterBand%1").arg(bandNo);
+    if (bandType == MasterData)
+        objName = QString("MasterDataBand%1").arg(bandNo);
+    if (bandType == MasterFooter)
+        objName = QString("MasterFooterBand%1").arg(bandNo);
+    if (bandType == MasterHeader)
+        objName = QString("MasterHeaderBand%1").arg(bandNo);
+    if (bandType == DataGroupHeader)
+        objName = QString("DataGroupHeaderBand%1").arg(bandNo);
+    if (bandType == DataGroupFooter)
+        objName = QString("DataGroupFooterBand%1_%2").arg(bandNo).arg(lvl);
+}
+
+ReportBand *RepScrollArea::m_addBand(BandType type, QMenu *bandMenu, int m_height, QString objName, int bandNo)
+{
+    QMenu m_bandMenu;
+    for (const auto &action : bandMenu->actions()) {
+        if (type == MasterData) {
+            m_bandMenu.addAction(action);
+        } else {
+            if (action->objectName() != "actGroupProperty")
+                m_bandMenu.addAction(action);
+        }
+    }
+
+    int bndNo = 1;
+    int lvl = 0;
+
+    if (m_height == 0)
+        // If band is new
+        assignBandParam(type, bndNo, lvl, objName);
+    else
+        bndNo = bandNo;
+
+    auto reportBand = new ReportBand(type, bndNo);
     reportBand->setMenu(&m_bandMenu);
     reportBand->setZValue(10);
-
+    reportBand->setObjectName(objName);
     reportBand->setWidth(pageSetting.pageWidth - pageSetting.marginsLeft - pageSetting.marginsRight);
-    if (m_height != 0)
+
+    if (m_height != 0) {
         reportBand->setHeight(m_height);
-    else
+    } else {
         reportBand->setHeight(200);
+        if (type == DataGroupFooter)
+            reportBand->setGroupLevel(lvl);
+    }
+
     scene->addItem(reportBand);
     this->newFieldTreeItem(reportBand);
     reportBand->setSelected(true);
@@ -264,11 +367,11 @@ ReportBand *RepScrollArea::m_addBand(BandType type, QMenu *bandMenu, int m_heigh
 
     correctBandGeom();
 
-    QObject::connect(reportBand, SIGNAL(itemRemoving()), scene, SLOT(itemRemoving()));
     return reportBand;
 }
 
-void RepScrollArea::newFieldTreeItem(QGraphicsItem *item) {
+void RepScrollArea::newFieldTreeItem(QGraphicsItem* item)
+{
     ReportBand *gBand = nullptr;
     GraphicsBox *gItem = nullptr;
     GraphicsLine *gLine = nullptr;
@@ -282,25 +385,25 @@ void RepScrollArea::newFieldTreeItem(QGraphicsItem *item) {
 
     QIcon icon;
     if (gBand != nullptr) {
-        rootItem->treeWidget()->clearSelection();
+        m_rootItem->treeWidget()->clearSelection();
 
-        QTreeWidgetItem *t_item = new QTreeWidgetItem(rootItem);
+        auto t_item = new QTreeWidgetItem(m_rootItem);
         icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/bands.png")), QIcon::Normal, QIcon::On);
         t_item->setIcon(0,icon);
         gBand->itemInTree = t_item;
 
         t_item->setText(0,gBand->objectName());
         t_item->setSelected(true);
-        rootItem->setExpanded(true);
+        m_rootItem->setExpanded(true);
 
-        for (int i=0; i<item->childItems().size(); i++)
-            newFieldTreeItem(gBand->childItems().at(i));
+        for (const auto &child : gBand->childItems())
+            newFieldTreeItem(child);
     }
     if (gItem != nullptr) {
-        QTreeWidgetItem *bandItem = static_cast<GraphicsBox*>(gItem->parentItem())->itemInTree;
+        auto bandItem = static_cast<GraphicsBox*>(gItem->parentItem())->itemInTree;
 
-        rootItem->treeWidget()->clearSelection();
-        QTreeWidgetItem *item = new QTreeWidgetItem(bandItem);
+        m_rootItem->treeWidget()->clearSelection();
+        auto item = new QTreeWidgetItem(bandItem);
         gItem->itemInTree = item;
         if (gItem->getFieldType() == Text || gItem->getFieldType() == TextImage || gItem->getFieldType() == DatabaseImage)
             icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/field.png")), QIcon::Normal, QIcon::On);
@@ -318,14 +421,14 @@ void RepScrollArea::newFieldTreeItem(QGraphicsItem *item) {
             icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/crossTab.png")), QIcon::Normal, QIcon::On);
         item->setIcon(0,icon);
         item->setText(0,gItem->objectName());
+        m_rootItem->addChild(item);
         item->setSelected(true);
-        rootItem->addChild(item);
         bandItem->setExpanded(true);
     }
     if (gLine != nullptr) {
         auto bandItem = static_cast<GraphicsBox*>(gLine->parentItem())->itemInTree;
 
-        rootItem->treeWidget()->clearSelection();
+        m_rootItem->treeWidget()->clearSelection();
         auto item = new QTreeWidgetItem(bandItem);
         gLine->itemInTree = item;
 
@@ -333,51 +436,105 @@ void RepScrollArea::newFieldTreeItem(QGraphicsItem *item) {
         item->setIcon(0,icon);
         item->setText(0,gLine->objectName());
         item->setSelected(true);
-        rootItem->addChild(item);
+        m_rootItem->addChild(item);
         bandItem->setExpanded(true);
     }
 }
 
-//Correct band position after inserting, deleteing
-void RepScrollArea::correctBandGeom(ReportBand *rep) {
+//Correct band position after inserting, deleteing or changing margins
+void RepScrollArea::correctBandGeom(ReportBand *rep)
+{
     QPointF p = ui->graphicsView->mapToScene(0,0);
-    int top_ = p.y()+pageSetting.marginsTop;
+    int top_ = p.y() + pageSetting.marginsTop;
+    int left_ = p.x() + pageSetting.marginsLeft;
+    int width_ = pageSetting.pageWidth - pageSetting.marginsLeft - pageSetting.marginsRight;
 
     auto allReportBand = getReportBands();
-    if (allReportBand.size() != 0)
-        qSort(allReportBand.begin(), allReportBand.end(), compareBandType);
+    if (!allReportBand.isEmpty())
+        std::sort(allReportBand.begin(), allReportBand.end(), [](ReportBand* p1, ReportBand* p2) {
+//            Undefined = 0,
+//            ReportTitle = 2,
+//            PageHeader = 1,
+//            DataGroupHeader = 3,
+//            MasterHeader = 4,
+//            MasterData = 5,
+//            MasterFooter = 6,
+//            DataGroupFooter = 7,
+//            ReportSummary = 8,
+//            PageFooter = 9
 
-    for(auto band : allReportBand) {
-        if (band == rep) continue;
-        band->setPos( QPointF(band->pos().x(), top_) );
-        top_ += band->getHeight()+15;
+//            Undefined = 0,
+//            PageHeader = 1,
+//            ReportTitle = 2,
+//            DataGroupHeader = 4,//3,
+//            MasterHeader = 3,//4,
+//            MasterData = 5,
+//            MasterFooter = 7,//6,
+//            DataGroupFooter = 6,//7,
+//            ReportSummary = 8,
+//            PageFooter = 9
+
+            int v1 = 0;
+            int v2 = 0;
+
+            if (p1->bandType == DataGroupFooter && p2->bandType == DataGroupFooter)
+                return p1->getGroupLevel() > p2->getGroupLevel();
+
+            if (p1->bandNo == p2->bandNo) {
+                v1 = p1->bandType;
+                v2 = p2->bandType;
+            } else {
+                v1 = p1->bandNo;
+                v2 = p2->bandNo;
+            }
+
+            if (p1->bandType == PageFooter)
+                v1 = p1->bandType * 100;
+            if (p1->bandType == ReportSummary)
+                v1 = p1->bandType * 100;
+            if (p2->bandType == PageFooter)
+                v2 = p2->bandType * 100;
+            if (p2->bandType == ReportSummary)
+                v2 = p2->bandType * 100;
+
+            return v1 < v2;
+        });
+
+    for (auto &band : allReportBand) {
+        if (band == rep)
+            continue;
+
+        band->setPos( QPointF(left_, top_) );
+        band->setWidth( width_ );
+        top_ += band->getHeight() + 4;  //space between bands in the designer
     }
 }
 
-bool RepScrollArea::eventFilter(QObject *obj, QEvent *e) {
-    if(obj==ui->horRuler && e->type()==QEvent::Paint) {
+bool RepScrollArea::eventFilter(QObject *obj, QEvent *e)
+{
+    if (obj == ui->horRuler && e->type()==QEvent::Paint) {
         paintHorRuler();
         return true;
     }
-    if(obj==ui->verRuler && e->type()==QEvent::Paint) {
+    if (obj == ui->verRuler && e->type()==QEvent::Paint) {
         paintVerRuler();        
         return true;
     }
+
     return QWidget::eventFilter(obj,e);
 }
 
-QList<ReportBand *> RepScrollArea::getReportBands() {
-    QList<ReportBand *> allReportBand;
-    for(auto item : scene->items())
+QList<ReportBand*> RepScrollArea::getReportBands()
+{
+    QList<ReportBand*> allReportBand;
+    for (const auto &item : scene->items())
         if (item->type() == ItemType::GBand)
-            allReportBand << static_cast<ReportBand*>(item);
+            allReportBand << qgraphicsitem_cast<ReportBand*>(item);
+
     return allReportBand;
 }
 
-RepScrollArea::~RepScrollArea() {
+RepScrollArea::~RepScrollArea()
+{
     delete ui;
-}
-
-int compareBandType(ReportBand *p1, ReportBand *p2) {
-    return p1->bandType < p2->bandType;
 }

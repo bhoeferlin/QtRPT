@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,31 +21,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef RPTSQL_H
-#define RPTSQL_H
+#pragma once
 
 #include <QObject>
 #include <QSqlQuery>
 #include <QImage>
+#include "RptDsAbstract.h"
 
-class RptSql : public QObject
+struct RptSqlConnection
+{
+    bool active;
+    int pageReportNo;
+    QString dsName;
+    QString dbType;
+    QString dbName;
+    QString dbHost;
+    QString dbUser;
+    QString dbPassword;
+    int dbPort;
+    QString dbConnectionName;
+    QString sqlQuery;
+    QString dbCoding;
+    QString charsetCoding;
+};
+
+class RptSql : public RptDsAbstract
 {
     Q_OBJECT
 public:
-    explicit RptSql(QString dbType, QString dbName, QString dbHost, QString dbUser, QString dbPassword, int dbPort, QString dbConnectionName, QObject *parent = 0);
-    bool openQuery(QString sql, QString dbCoding, QString charsetCoding);
-    int getRecordCount();
-    QString getFieldValue(QString fieldName, int recNo);
+    explicit RptSql(QObject *parent = nullptr);
+    bool openQuery();
+    virtual void loadXML(QDomElement dsElement) override;
+    virtual QString getFieldValue(QString fieldName, int recNo) override;
     QImage getFieldImage(QString fieldName, int recNo);
+    void setConnection(RptSqlConnection sqlConnection);
 
 private:
     QSqlDatabase db;
     QSqlQuery *query;
+    RptSqlConnection m_sqlConnection;
 
 signals:
 
 public slots:
 
 };
-
-#endif // RPTSQL_H

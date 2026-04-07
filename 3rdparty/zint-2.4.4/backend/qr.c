@@ -980,10 +980,8 @@ void add_format_info(unsigned char *grid, int size, int ecc_level, int pattern)
 void add_version_info(unsigned char *grid, int size, int version)
 {
 	/* Add version information */
-	int i;
-	
 	long int version_data = qr_annex_d[version - 7];
-	for(i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++) {
 		grid[((size - 11) * size) + i] += (version_data >> (i * 3)) & 0x01;
 		grid[((size - 10) * size) + i] += (version_data >> ((i * 3) + 1)) & 0x01;
 		grid[((size - 9) * size) + i] += (version_data >> ((i * 3) + 2)) & 0x01;

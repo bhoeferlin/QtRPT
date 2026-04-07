@@ -321,7 +321,7 @@ int imail(struct zint_symbol *symbol, unsigned char source[], int length)
 
 	error_number = 0;
 
-	if(length > 32) {
+    if (length > 32) {
 		strcpy(symbol->errtxt, "Input too long");
 		return ERROR_TOO_LONG;
 	}
@@ -378,7 +378,7 @@ int imail(struct zint_symbol *symbol, unsigned char source[], int length)
 		accum[i] = 0;
 	}
 	
-	for(read = 0; read < strlen(zip); read++) {
+    for (unsigned int read = 0; read < strlen(zip); read++) {
 
 		for(i = 0; i < 112; i++) {
 			x_reg[i] = accum[i];
@@ -423,7 +423,7 @@ int imail(struct zint_symbol *symbol, unsigned char source[], int length)
 		accum[i] = 0;
 	}
 	
-	for(read = 0; read < strlen(zip_adder); read++) {
+    for (unsigned int read = 0; read < strlen(zip_adder); read++) {
 
 		for(i = 0; i < 112; i++) {
 			y_reg[i] = accum[i];
@@ -490,7 +490,7 @@ int imail(struct zint_symbol *symbol, unsigned char source[], int length)
 	
 	/* and then the rest */
 
-	for(read = 2; read < strlen(tracker); read++) {
+    for (unsigned int read = 2; read < strlen(tracker); read++) {
 
 		for(i = 0; i < 112; i++) {
 			y_reg[i] = accum[i];

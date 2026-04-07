@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +26,9 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg2::ExampleDlg2(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg2) {
+ExampleDlg2::ExampleDlg2(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg2)
+{
     ui->setupUi(this);
     QObject::connect(ui->btnPrint, SIGNAL(clicked()), this, SLOT(print()));
     ui->table1->setRowCount(60);
@@ -42,7 +45,8 @@ ExampleDlg2::ExampleDlg2(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
     }
 }
 
-void ExampleDlg2::print() {
+void ExampleDlg2::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
@@ -50,30 +54,41 @@ void ExampleDlg2::print() {
 
     QString fileName = dir.absolutePath()+"/examples_report/example2.xml";
     report = new QtRPT(this);
-    report->recordCount << ui->table1->rowCount();
-    report->recordCount << ui->table2->rowCount();
-    if (report->loadReport(fileName) == false) {
-        qDebug()<<"Report file not found";
-    }
+
     QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
-    report->printExec();
+    QObject::connect(report, SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
 
+    report->loadReport(fileName);
+    report->printExec();
 }
 
-void ExampleDlg2::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg2::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     if (paramName == "value") {
         if (reportPage == 0) {
-            if (ui->table1->item(recNo,0) == 0) return;
+            if (ui->table1->item(recNo,0) == nullptr)
+                return;
             paramValue = ui->table1->item(recNo,0)->text();
         }
         if (reportPage == 1) {
-            if (ui->table2->item(recNo,0) == 0) return;
+            if (ui->table2->item(recNo,0) == nullptr)
+                return;
             paramValue = ui->table2->item(recNo,0)->text();
         }
     }
 }
 
-ExampleDlg2::~ExampleDlg2() {
+void ExampleDlg2::setDSInfo(DataSetInfo &dsInfo)
+{
+    if (dsInfo.reportPage == 0)
+        dsInfo.recordCount = ui->table1->rowCount();
+    if (dsInfo.reportPage == 1)
+        dsInfo.recordCount = ui->table2->rowCount();
+}
+
+ExampleDlg2::~ExampleDlg2()
+{
     delete ui;
 }

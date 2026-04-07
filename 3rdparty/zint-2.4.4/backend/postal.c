@@ -275,7 +275,7 @@ int fim(struct zint_symbol *symbol, unsigned char source[], int length)
 	return 0;
 }
 
-char rm4scc(char source[], unsigned char dest[], int length)
+char rm4scc(char source[], unsigned char dest[], unsigned int length)
 {
 	/* Handles the 4 State barcodes used in the UK by Royal Mail */
 	unsigned int i;

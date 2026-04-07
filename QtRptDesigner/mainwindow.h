@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ limitations under the License.
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QtGlobal>
 #if QT_VERSION >= 0x50000
     #include <QtWidgets>
 #else
@@ -34,11 +35,9 @@ limitations under the License.
 #include <QWidget>
 #include <QDomDocument>
 #include <QAction>
-#include "aboutDlg.h"
 #include "RepScrollArea.h"
-#include "SettingDlg.h"
-#include <XYZ_DownloadManager.h>
 #include "SqlDesigner.h"
+#include "ScriptEditor.h"
 #include "GraphicsBox.h"
 #include <QGraphicsItem>
 #include <QPointer>
@@ -47,7 +46,7 @@ namespace Ui {
     class MainWindow;
 }
 
-class EditorDelegate: public QItemDelegate
+class EditorDelegate: public QStyledItemDelegate
 {
     Q_OBJECT
 public:
@@ -69,7 +68,7 @@ private slots:
     void editorClose_(QWidget *editor, QAbstractItemDelegate::EndEditHint hint);
 
 signals:
-    void editorClose(QItemDelegate *item);
+    void editorClose(QStyledItemDelegate *item);
     void btnClicked();
 };
 
@@ -79,9 +78,22 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    friend class GraphicsScene;
+
+    explicit MainWindow(QStringList args = QStringList(), QWidget *parent = nullptr);
     ~MainWindow();
+    static MainWindow* instance() {
+        return mw;
+    }
+    bool loadPlugin();
+    void runSilentMode();
+    QList<QObject*> getPlugins() {return plugins;}
     void setReportChanged();
+    QStringList getWords();
+    Q_INVOKABLE QStringList getArguments();
+    Q_INVOKABLE void setWords(QStringList words);
+    Q_INVOKABLE void openXML(QSharedPointer<QDomDocument> xmlDoc);
+    Q_INVOKABLE QSharedPointer<QDomDocument> saveXML();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *e);
@@ -89,8 +101,9 @@ protected:
 
 private:
     Ui::MainWindow *ui;
+    static MainWindow* mw;
     QListWidget *listFrameStyle;
-    QDomDocument *xmlDoc;
+    QSharedPointer<QDomDocument> xmlDoc;
     QTreeWidgetItem *rootItem;
     QList<QGraphicsItem*> *cloneContList;
     QFontComboBox *cbFontName;
@@ -98,6 +111,8 @@ private:
     QComboBox *cbFontSize;
     QComboBox *cbFrameWidth;
     bool pasteCopy;
+    bool dontSelect;
+    QString pdfName;
     QIcon icon;
     QString fileName;
     QMenu *contMenu;
@@ -105,6 +120,8 @@ private:
     QLabel *m_status1;
     QLabel *m_status2;
     QLabel *m_status3;
+    QStringList m_words;
+    QStringList m_args;
 
     QAction *actRepTitle;
     QAction *actReportSummary;
@@ -117,7 +134,12 @@ private:
     QAction *actDataGroupingHeader;
     QAction *actDataGroupingFooter;
 
+    QStackedWidget *stackedWidget;
     SqlDesigner *sqlDesigner;
+    ScriptEditor *scriptEditor;
+
+    QList<QObject*> plugins;
+    QList<QPluginLoader*> pluginsLoaders;
 
     enum { MaxRecentFiles = 5 };
     QAction *recentFileActs[MaxRecentFiles];
@@ -125,7 +147,6 @@ private:
     QGraphicsItem *selectedGItem();
     GraphicsHelperClass *gItemToHelper(QGraphicsItem *item);
     bool setXMLProperty(QDomElement *repElem, void *ptr, int type);
-    void selectItemInTree(QTreeWidgetItem *item);
     void showParamState();
     Command getCommand(QObject *obj);
     void execButtonCommand(Command command, QVariant value);
@@ -135,10 +156,14 @@ private:
     void setParamTree(Command command, QVariant value = 0, bool child = false);
     void updateRecentFileActions();
     void setCurrentFile(const QString &fileName);
-    QDomElement getDataSourceElement(QDomNode n);
+    QVector<QDomElement> getDataSourceElements(QDomNode n);
     void enableAdding();
+    bool checkName(const QString &name);
     QGraphicsItemList getSelectedItems();
     GraphicsHelperList getSelectedHelperItems();
+    void checkAddBandPermission();
+    void loadReport();
+
 
 private slots:
     void showAbout();
@@ -148,16 +173,10 @@ private slots:
     void showPageSetting();
     void clickOnTBtn();
     void addBand();
-    void addFieldText();
-    void addFieldTextRich();
-    void addFieldCrossTab();
     void addField(FieldType type);
-    void AddPicture();
-    void addDiagram();
     void addDraw();
-    void addBarcode();
+    void setSelectionMode();
     void sceneItemSelectionChanged(QGraphicsItem *item);
-    void delItemInTree(QGraphicsItem *gItem, QTreeWidgetItem *);
     void selTree(QTreeWidgetItem *tItem, int);
     void itemChanged(QTreeWidgetItem *item, int column);
     void closeEditor();
@@ -178,17 +197,16 @@ private slots:
     void showSetting();
     void changeZoom();
     void openDBGroupProperty();
-    void checkUpdates();
     void showPreview();
-    void showDataSource();
+    void showPane();
     void undo();
     void redo();
-    void openReadme();
     void mousePos(QPointF pos);
     void sceneClick();
+    void sceneItemAdded(QGraphicsItem *mItem);
     void generateName(QGraphicsItem *mItem);
+    void currentParamChanged(QTreeWidgetItem *current,QTreeWidgetItem *previous);
+    void applyParam(QTreeWidgetItem *item);
 };
-
-MainWindow *getMW();
 
 #endif // MAINWINDOW_H

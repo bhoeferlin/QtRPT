@@ -1106,7 +1106,7 @@ int cc_binary_string(struct zint_symbol *symbol, const char source[], char binar
 		j++;
 	}
 	
-	for(i = read_posn; i < strlen(source); i++) {
+    for(unsigned long long i = read_posn; i < strlen(source); i++) {
 		general_field[j] = source[i];
 		j++;
 	}
@@ -1115,7 +1115,7 @@ int cc_binary_string(struct zint_symbol *symbol, const char source[], char binar
 	if(strlen(general_field) != 0) { alpha_pad = 0; }
 	
 	latch = 0;
-	for(i = 0; i < strlen(general_field); i++) {
+    for(unsigned long long i = 0; i < strlen(general_field); i++) {
 		/* Table 13 - ISO/IEC 646 encodation */
 		if((general_field[i] < ' ') || (general_field[i] > 'z')) {
 			general_field_type[i] = INVALID_CHAR; latch = 1;
@@ -1181,13 +1181,13 @@ int cc_binary_string(struct zint_symbol *symbol, const char source[], char binar
         return ERROR_INVALID_DATA1;
 	}
 
-	for(i = 0; i < strlen(general_field); i++) {
+    for(unsigned long long i = 0; i < strlen(general_field); i++) {
 		if((general_field_type[i] == ISOIEC) && (general_field[i + 1] == '[')) {
 			general_field_type[i + 1] = ISOIEC;
 		}
 	}
 	
-	for(i = 0; i < strlen(general_field); i++) {
+    for(unsigned long long i = 0; i < strlen(general_field); i++) {
 		if((general_field_type[i] == ALPHA_OR_ISO) && (general_field[i + 1] == '[')) {
 			general_field_type[i + 1] = ALPHA_OR_ISO;
 		}

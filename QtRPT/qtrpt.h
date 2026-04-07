@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,19 +21,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef QTRPT_H
-#define QTRPT_H
+#pragma once
 
 #include <QPainter>
 #include <QDomDocument>
-#include <QScriptEngine>
 #include <QPrintPreviewWidget>
 #include <QTextDocument>
 #include <qtrptnamespace.h>
 #include <RptFieldObject.h>
 #include <RptBandObject.h>
 #include <RptPageObject.h>
-#include <RptSqlConnection.h>
+#include <RptScriptEngine.h>
+#include <RptSql.h>
 
 #if QT_VERSION >= 0x50000
     #ifdef QXLSX_LIBRARY
@@ -41,42 +40,40 @@ limitations under the License.
     #endif
 #endif
 
+#if QT_VERSION >= 0x50800 && QT_VERSION < 0x60000
+    #include <QtCharts>
+    using namespace QtCharts;
+#endif
+
+#if QT_VERSION >= 0x60000
+    #include <QtCharts/QChartGlobal>
+    QT_BEGIN_NAMESPACE
+    class QChartView;
+    class QChart;
+    QT_END_NAMESPACE
+#endif
 
 using namespace QtRptName;
 
-enum HiType {
-    FntBold,
-    FntItalic,
-    FntUnderline,
-    FntStrikeout,
-    FntColor,
-    BgColor
-};
 
-struct AggregateValues {
-    QString paramName;
-    QVariant paramValue;
-    int lnNo;
-    int pageReport;
-};
-
-class Chart;
 class RptSql;
 class RptPageObject;
 class RptBandObject;
 class RptFieldObject;
 class RptCrossTabObject;
 
-QScriptValue funcAggregate(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcToUpper(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcToLower(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcNumberToWords(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcFrac(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcFloor(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcCeil(QScriptContext *context, QScriptEngine *engine);
-QScriptValue funcRound(QScriptContext *context, QScriptEngine *engine);
-static QList<AggregateValues> listOfPair;
-static QList<int> listIdxOfGroup;
+struct DataSetInfo {
+    QString dsName;
+    int reportPage;
+    int dataSetNo;
+    int recordCount;
+};
+typedef QList<DataSetInfo> DataSetInfoList;
+
+typedef QList<RptPageObject*> PageList;
+Q_DECLARE_METATYPE(PageList)
+
+
 
 #ifndef QTRPT_LIBRARY
     class QtRPT : public QObject
@@ -87,34 +84,49 @@ static QList<int> listIdxOfGroup;
 
 {
     Q_OBJECT
+    Q_PROPERTY(PageList pageList MEMBER pageList)
+
     friend class RptFieldObject;
     friend class RptBandObject;
+
 public:
-    explicit QtRPT(QObject *parent = 0);
+    typedef QSharedPointer<QtRPT> SPtrQtRPT;
+
+	explicit QtRPT(QObject *parent = nullptr);
+    static SPtrQtRPT createSPtr(QObject *parent = nullptr)
+    {
+        SPtrQtRPT sptr= SPtrQtRPT(new QtRPT(parent));
+        return sptr;
+    }
+
     bool setPainter(QPainter *painter);
-    bool setPrinter(QPrinter* printer);
+    bool setPrinter(QPrinter *printer);
     void setResolution(QPrinter::PrinterMode resolution);
     bool loadReport(QString fileName);
     bool loadReport(QDomDocument xmlDoc);
     void clearObject();
-    void printExec(bool maximum = false, bool direct = false, QString printerName = QString());
+    QDomDocument xmlDoc();
+
     //void setCallbackFunc(void (*func)(int &recNo, QString &paramName, QVariant &paramValue));
+    void setBackgroundImageOpacity(float opacity);
     void setBackgroundImage(QPixmap &image);
     void setBackgroundImage(QPixmap image);
-    void printPDF(const QString &filePath, bool open = true);
-    void printHTML(const QString &filePath, bool open = true);
-    void printXLSX(const QString &filePath, bool open = true);
     void setSqlQuery(QString sqlString);
     static FieldType getFieldType(QDomElement e);
     static QString getFieldTypeName(FieldType type);
-    static QList<FieldType> getDrawingFields();
+    static QSet<FieldType> getDrawingFields();
     static Qt::PenStyle getPenStyle(QString value);
-    QList<RptPageObject*> pageList;    
-    QList<int> recordCount;
-    ~QtRPT();
+    PageList pageList;
 
-    void setUserSqlConnection(int pageReport, QString dsName, QString dbType, QString dbName, QString dbHost, QString dbUser, QString dbPassword, int dbPort, QString dbConnectionName, QString sql, QString dbCoding = "UTF8", QString charsetCoding = "UTF8");
-    void activateUserSqlConnection(int pageReport, bool bActive);
+    ~QtRPT();
+    Q_INVOKABLE RptPageObject *getPage(int pageNo);
+    static QString getFormattedValue(QString value, QString formatString, QString inputFormatString);
+
+    void setUserSqlConnection(int pageReportNo, QString dsName, QString dbType, QString dbName, QString dbHost, QString dbUser, QString dbPassword, int dbPort, QString dbConnectionName, QString sql, QString dbCoding = "UTF8", QString charsetCoding = "UTF8");
+    void activateUserSqlConnection(int pageReportNo, bool bActive);
+
+protected:
+    bool eventFilter(QObject *obj, QEvent *e);
 
 private:
     QPixmap *m_backgroundImage;
@@ -123,96 +135,124 @@ private:
     int m_recNo;
     int mg_recNo;
     int m_pageReport;
-    float koefRes_h;
-    float koefRes_w;
+    double koefRes_h;
+    double koefRes_w;
     int ph;
     int pw;
     int ml;
     int mr;
     int mt;
     int mb;
-    int curPage;
+    int currentPage;
     int totalPage;
     int m_orientation;
+    float m_backgroundOpacity;
+    RptSqlConnection m_userSqlConnection;
+    QString m_globalScript;
+    RptScriptEngine *m_globalEngine;
+    RptScriptEngine *m_engineAux1;
+    RptScriptEngine *m_engineAux2;
     QPrintPreviewWidget *pr;
-    QList<QAction *> lst;
-    QDomDocument xmlDoc;
+    QList<QAction*> lst;
+    QDomDocument m_xmlDoc;
+    QTextDocument tmpRichTextDoc;
     QDomNode getBand(BandType type, QDomElement docElem);
     void drawBandRow(RptBandObject *band, int bandTop, bool allowDraw = true);
     void fillListOfValue(RptBandObject *bandObject);
-    QString sectionField(RptBandObject *band, QString value, bool exp, bool firstPass = false, QString formatString = "");
-    QStringList splitValue(QString value);
+    QString sectionField(RptBandObject *band, QString value, bool isReachText, bool firstPass = false, QString formatString = "", QString inputFormatString = "");
+    void processGlobalScript();
+    QStringList splitStringOnVariable(QString strValue);
+    QString getVariableValue(QString scriptStr, bool exp = false);
+    QString stringPreprocessing(QString str, QString formatString);
     QImage sectionFieldImage(QString value);
-    QVariant processFunctions(QString value);
-    QString sectionValue(QString paramName);
+    QVariant getInternalVariable(QString value, QString formatString);
+    QString sectionValue(QString paramName, int recNo = -1);
     QImage sectionValueImage(QString paramName);
     void newPage(QPrinter *printer, int &y, bool draw, bool newReportPage = false);
     void processPHeader(int &y, bool draw);
     void processPFooter(bool draw);
-    void processMFooter(QPrinter *printer, int &y, bool draw);
-    void processRSummary(QPrinter *printer, int &y, bool draw);
+    void processMFooter(QPrinter *printer, int &y, int dsNo, bool draw, int &pageReportNo);
+    void processRSummary(QPrinter *printer, int &y, bool draw, int &pageReportNo);
     //void (*callbackFunc)(int &recNo, QString &paramName, QVariant &paramValue);
-    void processReport(QPrinter *printer, bool draw, int pageReport);
+    void processReport(QPrinter *printer, bool draw, int &pageReportNo, bool isFirstPage);
     void processRTitle(int &y, bool draw);
-    void processMHeader(int &y, bool draw);
-    void processMasterData(QPrinter *printer, int &y, bool draw, int pageReport);
-    void processGroupHeader(QPrinter *printer, int &y, bool draw, int pageReport);
-    void setPageSettings(QPrinter *printer, int pageReport);
-    void drawBackground();
+    void processMHeader(int &y, int dsNo, bool draw, int &pageReportNo);
+    void processMasterData(QPrinter *printer, int &y, bool draw, int &pageReportNo, int dsNo, QList<int> GroupIdxList_current);
+    void processGroupHeader(QPrinter *printer, int &y, bool draw, int &pageReportNo);
+    void setPageSettings(QPrinter *printer, int pageReportNo);
+    void drawBackground(bool draw);
     bool isFieldVisible(RptFieldObject *fieldObject);
     QVariant processHighligthing(RptFieldObject *field, HiType type);
     bool allowPrintPage(bool draw, int curPage_);
     bool allowNewPage(bool draw, int curPage_);
     int fromPage;
     int toPage;
-    QStringList listOfGroup;
-    QString getFormattedValue(QString value, QString formatString);
     void setFont(RptFieldObject *fieldObject);
     static Qt::Alignment getAligment(QDomElement e);
     QPen getPen(RptFieldObject *fieldObject);
     void drawFields(RptFieldObject *fieldObject, int bandTop, bool firstPass);
     void drawLines(RptFieldObject *fieldObject, int bandTop);
-    void openDataSource(int pageReport);
-    void setUserSqlConnection(int pageReport, const RptSqlConnection &SqlConnection);
-    void getUserSqlConnection(int pageReport, RptSqlConnection &SqlConnection);
-    QVector <RptSql *> rtpSqlVector;
-    QVector <RptSqlConnection> userSqlConnection;
-    QString m_sqlQuery;
+    void openDataSource(int &pageReportNo);
+    int getRecCount(int reportPage, int dsSetNo);
+    int getRecCount(int reportPage, QString dsSetName);
+    bool setRecCount(int reportPage, int dsSetNo, int recCount);
+    bool setRecCount(int reportPage, QString dsSetName, int recCount);
+    void setUserSqlConnection(int &pageReportNo, const RptSqlConnection &sqlConnection);
+    void getUserSqlConnection(int &pageReportNo, RptSqlConnection &sqlConnection);
+    QString findAliasinTHML(QTextDocument *document);
+    void replaceinHTML(QTextDocument *document, QString alias, QString value);
+
+    QList<AggregateValues> listOfPair;
+    QList<int> GroupIdxList_0;
+    QList<int> GroupIdxList_1;
+    QList<int> GroupIdxList_2;
+    QList<RowData> rowList;
+
+    DataSetInfoList m_dataSetInfoList;
+
     QString m_HTML;
-    //QXlsx::Document *m_xlsx;
     RptCrossTabObject *crossTab;
 
+    #ifdef QXLSX_LIBRARY
+        QXlsx::Document *m_xlsx;
+    #endif
+
     void makeReportObjectStructure();
-    enum PrintMode {
+    enum PrintMode
+    {
         Printer = 0,
-        Pdf = 1,
-        Html = 2,
-        Xlsx = 3
+        Pdf     = 1,
+        Html    = 2,
+        Xlsx    = 3
     };
     PrintMode m_printMode;
     QPrinter::PrinterMode m_resolution;
-
-protected:
-    bool eventFilter(QObject *obj, QEvent *e);
 
 signals:
     void setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage);
     void setField(RptFieldObject &fieldObject);
     void setValueImage(const int recNo, const QString paramName, QImage &paramValue, const int reportPage);
-    void setValueDiagram(Chart &chart);
+    void setValueDiagram(GraphDataList &data);
+    #if QT_VERSION >= 0x50800
+        void setChart(RptFieldObject &fieldObject, QChart &chart);
+    #endif
     void newPage(int page);
+    void setDSInfo(DataSetInfo &dsInfo);
+    void previewDestroyed();
 
 public slots:
     void printPreview(QPrinter *printer);
+    void printPDF(const QString &filePath, bool open = true);
+    void printHTML(const QString &filePath, bool open = true);
+    void printXLSX(const QString &filePath, bool open = true);
+    void printExec(bool maximum = false, bool direct = false, QString printerName = QString());
 
 private slots:
     void exportTo();
 
 };
 
+
 #ifdef QTRPT_LIBRARY
     extern "C" QTRPTSHARED_EXPORT QtRPT* createQtRPT();
 #endif
-
-#endif // QTRPT_H
-

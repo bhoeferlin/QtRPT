@@ -1,12 +1,12 @@
 /*
 Name: XYZ
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ limitations under the License.
 #include <QWidget>
 #include <QTextEdit>
 #include <QTextList>
+#include <QCompleter>
+#include "XYZ_TextEdit.h"
 
 namespace Ui {
     class XYZTextEditor;
@@ -35,14 +37,17 @@ namespace Ui {
 class XYZTextEditor : public QWidget {
     Q_OBJECT
 public:
-    XYZTextEditor(QWidget *parent = 0);
+    XYZTextEditor(QWidget *parent = nullptr);
     ~XYZTextEditor();
-    QTextEdit *textEdit;
+    void setCompleter(QCompleter *c);
+    QCompleter *completer() const;
+    XYZTextEdit *textEdit;
 
 protected:
 
 private:
     Ui::XYZTextEditor *m_ui;
+    QCompleter *c = nullptr;
     void setupTextActions();
     void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
     void alignmentChanged(Qt::Alignment a);

@@ -1,12 +1,12 @@
 /*
 Name: XYZ
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
+Version: 3.0.0
+Web-site: https://qtrpt.sourceforge.io
 Programmer: Aleksey Osipov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2022 Aleksey Osipov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,18 +24,22 @@ limitations under the License.
 #include "XYZ_UpdateDlg.h"
 #include "ui_XYZ_UpdateDlg.h"
 
-XYZUpdateDlg::XYZUpdateDlg(QString url,QWidget *parent) : QDialog(parent), ui(new Ui::XYZUpdateDlg) {
+XYZUpdateDlg::XYZUpdateDlg(QString url,QWidget *parent)
+: QDialog(parent), ui(new Ui::XYZUpdateDlg)
+{
     ui->setupUi(this);
     m_url = url;
     QObject::connect(ui->btnUpdate, SIGNAL(clicked()),this, SLOT(doDownload()));
 }
 
-void XYZUpdateDlg::showThis(QStringList list) {
+void XYZUpdateDlg::showThis(QStringList list)
+{
     ui->pb1->setValue(0);
     ui->pb2->setValue(0);
     ui->tableWidget->setColumnWidth(0,0);
     ui->tableWidget->setColumnWidth(1,300);
     ui->tableWidget->setRowCount(list.size());
+
     QTableWidgetItem *newItem;
     for (int i = 0; i < list.size(); ++i) {
         newItem = new QTableWidgetItem(list.at(i));
@@ -46,7 +50,8 @@ void XYZUpdateDlg::showThis(QStringList list) {
     this->exec();
 }
 
-void XYZUpdateDlg::doDownload() {
+void XYZUpdateDlg::doDownload()
+{
     QString dir = QCoreApplication::applicationDirPath();
     dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
                                          QCoreApplication::applicationDirPath(),
@@ -54,11 +59,10 @@ void XYZUpdateDlg::doDownload() {
                                          | QFileDialog::DontResolveSymlinks);
 
     int checked = 0;
-    for (int i = 0; i < ui->tableWidget->rowCount(); ++i) {
-        if (ui->tableWidget->item(i,1)->checkState() == Qt::Checked) {
+    for (int i = 0; i < ui->tableWidget->rowCount(); ++i)
+        if (ui->tableWidget->item(i,1)->checkState() == Qt::Checked)
             checked += 1;
-        }
-    }
+
     ui->pb2->setMaximum(checked);
     XYZDownloadManager dl1;
 
@@ -89,11 +93,13 @@ void XYZUpdateDlg::doDownload() {
     this->close();
 }
 
-void XYZUpdateDlg::downloadProgress(qint64 recieved, qint64 total) {
+void XYZUpdateDlg::downloadProgress(qint64 recieved, qint64 total)
+{
     ui->pb1->setValue(recieved);
     ui->pb1->setMaximum(total);
 }
 
-XYZUpdateDlg::~XYZUpdateDlg() {
+XYZUpdateDlg::~XYZUpdateDlg()
+{
     delete ui;
 }

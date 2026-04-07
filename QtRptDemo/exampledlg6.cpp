@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +26,9 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg6::ExampleDlg6(QWidget *parent, int mode) :  QDialog(parent),  ui(new Ui::ExampleDlg6) {
+ExampleDlg6::ExampleDlg6(QWidget *parent, int mode)
+: QDialog(parent),  ui(new Ui::ExampleDlg6)
+{
     ui->setupUi(this);
 
     m_mode = mode;
@@ -34,7 +37,7 @@ ExampleDlg6::ExampleDlg6(QWidget *parent, int mode) :  QDialog(parent),  ui(new 
 
     QTableWidgetItem *newItem;
     for (int i = 0; i < ui->tableWidget->rowCount(); ++i) {
-        switch (i){
+        switch (i) {
             case 0:
             case 3:
             case 7:
@@ -51,7 +54,6 @@ ExampleDlg6::ExampleDlg6(QWidget *parent, int mode) :  QDialog(parent),  ui(new 
                 break;
             }
             case 2:
-            //case 5:
             case 10:
             case 12: {
                 newItem = new QTableWidgetItem("Ukraine");
@@ -72,7 +74,53 @@ ExampleDlg6::ExampleDlg6(QWidget *parent, int mode) :  QDialog(parent),  ui(new 
 
         ui->tableWidget->setItem(i,0,newItem);
 
-        newItem = new QTableWidgetItem("Goods "+QString::number(i));
+        switch (i) {
+            case 0:
+            case 8:
+            case 25: {
+                newItem = new QTableWidgetItem("Apple");
+                break;
+            }
+
+            case 3:
+            case 7: {
+                newItem = new QTableWidgetItem("Orange");
+                break;
+            }
+
+            case 1:
+            case 9: {
+                newItem = new QTableWidgetItem("Banana");
+                break;
+            }
+            case 5:
+            case 14:
+            case 23:
+            case 27:
+            case 26: {
+                newItem = new QTableWidgetItem("Lemon");
+                break;
+            }
+            case 2:
+            case 10:
+            case 24:
+            case 12: {
+                newItem = new QTableWidgetItem("Cherry");
+                break;
+            }
+            case 4:
+            case 6:
+            case 11:
+            case 13:
+            case 20: {
+                newItem = new QTableWidgetItem("Kiwy");
+                break;
+            }
+            default: {
+                newItem = new QTableWidgetItem("Other");
+                break;
+            }
+        }
         ui->tableWidget->setItem(i,1,newItem);
 
         newItem = new QTableWidgetItem(QString::number(i*10));
@@ -86,7 +134,8 @@ ExampleDlg6::ExampleDlg6(QWidget *parent, int mode) :  QDialog(parent),  ui(new 
     }
 }
 
-void ExampleDlg6::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg6::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     Q_UNUSED(reportPage);
 
     if ((paramName == "sampleId") && (reportPage >= 1)) {
@@ -152,7 +201,8 @@ void ExampleDlg6::setValue(const int recNo, const QString paramName, QVariant &p
     }
 }
 
-void ExampleDlg6::print() {
+void ExampleDlg6::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
@@ -164,16 +214,24 @@ void ExampleDlg6::print() {
     if (m_mode == 2)
         fileName = dir.absolutePath()+"/examples_report/example6b.xml";
     report = new QtRPT(this);
-    report->recordCount << ui->tableWidget->rowCount();
+
     if (report->loadReport(fileName) == false) {
         qDebug()<<"Report file not found";
     }
     QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
+    QObject::connect(report, SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
     report->printExec();
 }
 
-ExampleDlg6::~ExampleDlg6() {
+void ExampleDlg6::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = ui->tableWidget->rowCount();
+}
+
+ExampleDlg6::~ExampleDlg6()
+{
     delete ui;
 }
 

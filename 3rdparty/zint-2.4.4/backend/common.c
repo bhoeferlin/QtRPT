@@ -54,10 +54,8 @@ void concat(char dest[], char source[])
 
 void uconcat(unsigned char dest[], unsigned char source[])
 { /* Concatinates dest[] with the contents of source[], copying /0 as well */
-	unsigned int i, j;
-
-	j = ustrlen(dest);
-	for(i = 0; i <= ustrlen(source); i++) {
+    int j = ustrlen(dest);
+    for(int i = 0; i <= ustrlen(source); i++) {
 		dest[i + j] = source[i]; }
 }
 
@@ -89,10 +87,10 @@ void to_upper(unsigned char source[])
 
 int is_sane(char test_string[], unsigned char source[], int length)
 { /* Verifies that a string only uses valid characters */
-	unsigned int i, j, latch;
+    unsigned int j, latch;
 	unsigned int lt = strlen(test_string);
 
-	for(i = 0; i < length; i++) {
+    for(int i = 0; i < length; i++) {
 		latch = FALSE;
 		for(j = 0; j < lt; j++) {
 			if (source[i] == test_string[j]) { 

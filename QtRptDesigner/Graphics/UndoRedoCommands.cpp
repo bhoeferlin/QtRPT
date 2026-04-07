@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,21 +25,22 @@ limitations under the License.
 #include "RepScrollArea.h"
 
 MoveGItemCommand::MoveGItemCommand(const ItemsAndParams &itm, QUndoCommand *parent)
-    : QUndoCommand(parent), m_itm(itm)
+: QUndoCommand(parent), m_itm(itm)
 {
     setText(QObject::tr("Moving box"));
 }
 
-void MoveGItemCommand::redo() {
-    GraphicsBox *box = static_cast<GraphicsBox*>(m_itm.item);
+void MoveGItemCommand::redo()
+{
+    auto box = qgraphicsitem_cast<GraphicsBox*>(m_itm.item);
     box->setPos(m_itm.newPos);
     box->setWidth(m_itm.newWidth);
     box->setHeight(m_itm.newHeight);
-    box->setSelected(true);
 }
 
-void MoveGItemCommand::undo() {
-    GraphicsBox *box = static_cast<GraphicsBox*>(m_itm.item);
+void MoveGItemCommand::undo()
+{
+    auto box = qgraphicsitem_cast<GraphicsBox*>(m_itm.item);
     box->setPos(m_itm.oldPos);
     box->setWidth(m_itm.oldWidth);
     box->setHeight(m_itm.oldHeight);
@@ -48,31 +49,35 @@ void MoveGItemCommand::undo() {
 
 
 MoveLineCommand::MoveLineCommand(const ItemsAndParams &itm, QUndoCommand *parent)
-    : QUndoCommand(parent), m_itm(itm)
+: QUndoCommand(parent), m_itm(itm)
 {
     setText(QObject::tr("Moving line"));
 }
 
-void MoveLineCommand::redo() {
-    GraphicsLine *line = static_cast<GraphicsLine*>(m_itm.item);
+void MoveLineCommand::redo()
+{
+    auto line = static_cast<GraphicsLine*>(m_itm.item);
     line->setPos(m_itm.newPos);
     line->setPointList(m_itm.newPointList);
 }
 
-void MoveLineCommand::undo() {
-    GraphicsLine *line = static_cast<GraphicsLine*>(m_itm.item);
+void MoveLineCommand::undo()
+{
+    auto line = static_cast<GraphicsLine*>(m_itm.item);
     line->setPos(m_itm.oldPos);
     line->setPointList(m_itm.oldPointList);
 }
 
 //************************************************************************************************
 
-DelItemCommand::DelItemCommand(GraphicsScene *scene, QUndoCommand *parent) : QUndoCommand(parent) {
+DelItemCommand::DelItemCommand(GraphicsScene *scene, QUndoCommand *parent)
+: QUndoCommand(parent)
+{
     myGraphicsScene = scene;
 
-    for(auto item : scene->items()) {
+    for (auto &item : scene->items()) {
         bool isSelected = false;
-        GraphicsBox *box = nullptr;
+        GraphicsBox* box = nullptr;
         if (item->type() == ItemType::GBand) {
             box = static_cast<GraphicsBox*>(item);
             isSelected = box->isSelected();
@@ -81,7 +86,7 @@ DelItemCommand::DelItemCommand(GraphicsScene *scene, QUndoCommand *parent) : QUn
             box = static_cast<GraphicsBox*>(item);
             isSelected = box->isSelected();
         }
-        GraphicsLine *line = nullptr;
+        GraphicsLine* line = nullptr;
         if (item->type() == ItemType::GLine) {
             line = static_cast<GraphicsLine*>(item);
             isSelected = line->isSelected();
@@ -93,25 +98,28 @@ DelItemCommand::DelItemCommand(GraphicsScene *scene, QUndoCommand *parent) : QUn
     setText(QObject::tr("Delete"));
 }
 
-void DelItemCommand::undo() {
-    for (int i=0; i<itemList.size(); i++) {
-        myGraphicsScene->addItem(itemList[i]);
-        if (itemList[i]->type() == ItemType::GBox || itemList[i]->type() == ItemType::GLine) {
-            itemList.at(i)->setParentItem(parentList[i]);
+void DelItemCommand::undo()
+{
+    auto area = qobject_cast<RepScrollArea*>(myGraphicsScene->parent());
 
-            RepScrollArea *area = qobject_cast<RepScrollArea*>(myGraphicsScene->parent());
-            area->newFieldTreeItem(itemList.at(i));
+    quint32 i = 0;
+    for (auto &item : itemList) {
+        myGraphicsScene->addItem(item);
+        if (item->type() == ItemType::GBox || item->type() == ItemType::GLine) {
+            item->setParentItem(parentList[i]);
+            area->newFieldTreeItem(item);
         }
         if (itemList[i]->type() == ItemType::GBand) {
-            RepScrollArea *area = qobject_cast<RepScrollArea*>(myGraphicsScene->parent());
-            area->newFieldTreeItem(itemList.at(i));
+            area->newFieldTreeItem(item);
         }
+        i++;
     }
     myGraphicsScene->update();
 }
 
-void DelItemCommand::redo() {
-    for(auto cont1 : itemList) {
+void DelItemCommand::redo()
+{
+    for (auto &cont1 : itemList) {
         parentList << cont1->parentItem();
         myGraphicsScene->removeItem(cont1);
     }
@@ -119,7 +127,9 @@ void DelItemCommand::redo() {
 
 //************************************************************************************************
 
-AddCommand::AddCommand(QGraphicsItem *item, GraphicsScene *scene, QGraphicsItem *p_item, QUndoCommand *parent) : QUndoCommand(parent) {
+AddCommand::AddCommand(QGraphicsItem *item, GraphicsScene *scene, QGraphicsItem *p_item, QUndoCommand *parent)
+: QUndoCommand(parent)
+{
     static int itemCount = 0;
 
     myGraphicsScene = scene;
@@ -131,23 +141,26 @@ AddCommand::AddCommand(QGraphicsItem *item, GraphicsScene *scene, QGraphicsItem 
     setText(QObject::tr("Add"));
 }
 
-AddCommand::~AddCommand() {
+AddCommand::~AddCommand()
+{
     if (!myDiagramItem)
         delete myDiagramItem;
 }
 
-void AddCommand::undo() {
+void AddCommand::undo()
+{
     myGraphicsScene->removeItem(myDiagramItem);
     myGraphicsScene->update();
 }
 
-void AddCommand::redo() {
-    if (myDiagramItem->scene() == 0)
+void AddCommand::redo()
+{
+    if (myDiagramItem->scene() == nullptr)
         myGraphicsScene->addItem(myDiagramItem);
-	if (mpItem != 0) {
+    if (mpItem != nullptr) {
 		myDiagramItem->setParentItem(mpItem);
 
-        RepScrollArea *area = qobject_cast<RepScrollArea*>(myGraphicsScene->parent());
+        auto area = qobject_cast<RepScrollArea*>(myGraphicsScene->parent());
         area->newFieldTreeItem(myDiagramItem);
 	}
     myDiagramItem->setPos(initialPosition);
@@ -157,81 +170,48 @@ void AddCommand::redo() {
 
 //************************************************************************************************
 
-ParamCommand::ParamCommand(QList<PairCont> list, GraphicsScene *scene, QUndoCommand *parent) : QUndoCommand(parent) {
+ParamCommand::ParamCommand(QList<PairCont>& list, GraphicsScene *scene, QUndoCommand *parent)
+: QUndoCommand(parent)
+{
     myGraphicsScene = scene;
     m_dataList = list;
     this->setText(QObject::tr("Changing Container's parameters"));
 }
 
-ParamCommand::~ParamCommand() {
+ParamCommand::~ParamCommand()
+{}
 
-}
-
-void ParamCommand::undo() {
-    for (int i=0; i<m_dataList.size(); i++) {
-        PairCont pair = m_dataList[i];
+void ParamCommand::undo()
+{
+    for (auto &pair : m_dataList) {
         QDataStream in(pair.oldBArray);
-        GraphicsHelperClass *second = qobject_cast<GraphicsHelperClass *>(pair.gHelper);
-        if (second == 0) continue;
+        auto second = qobject_cast<GraphicsHelperClass *>(pair.gHelper);
+        if (second == nullptr)
+            continue;
         in >> *second;
         pair.gHelper = second;
-
-        /*if (pair.third != QtRptName::Line) {
-            TContainerField *second = qobject_cast<TContainerField *>(pair.second);
-            if (second == 0) continue;
-            in >> *second;
-            pair.second = second;
-        } else {
-            TContainerLine *second = qobject_cast<TContainerLine *>(pair.second);
-            if (second == 0) continue;
-            in >> *second;
-            pair.second = second;
-        }*/
-        //pair.second->itemInTree->setText(0,pair.second->objectName());
     }
     myGraphicsScene->update();
 }
 
-void ParamCommand::redo() {
-    /*if (m_create) {
-        m_create = false;
-        return;
-    }*/
-    for (int i=0; i<m_dataList.size(); i++) {
-        PairCont pair = m_dataList[i];
+void ParamCommand::redo()
+{
+    for (auto &pair : m_dataList) {
         QDataStream in(pair.newBArray);
-        GraphicsHelperClass *second = qobject_cast<GraphicsHelperClass *>(pair.gHelper);
+        auto second = qobject_cast<GraphicsHelperClass *>(pair.gHelper);
         in >> *second;
         pair.gHelper = second;
-
-        /*if (pair.third != QtRptName::Line) {
-            TContainerField *second = qobject_cast<TContainerField *>(pair.second);
-            in >> *second;
-            pair.second = second;
-        } else {
-            TContainerLine *second = qobject_cast<TContainerLine *>(pair.second);
-            in >> *second;
-            pair.second = second;
-        }*/
-        //pair.second->itemInTree->setText(0,pair.second->objectName());
     }
     myGraphicsScene->update();
 }
 
-BArrayList ParamCommand::getBArrayFromContList(GraphicsHelperList contList) {
+BArrayList ParamCommand::getBArrayFromContList(GraphicsHelperList contList)
+{
     BArrayList list;
-    for(auto cont1 : contList) {
-//        cont1->setProperties();
+    for (auto &cont1 : contList) {
         QByteArray byteArray;
         QDataStream out(&byteArray, QIODevice::WriteOnly);
         out << *cont1;
-
-//        TContainerField *contF = qobject_cast<TContainerField *>(cont1);
-//        if (contF != 0)
-//            out << *contF;
-//        TContainerLine *contL = qobject_cast<TContainerLine *>(cont1);
-//        if (contL != 0)
-//            out << *contL;
 
         QPair<QByteArray, GraphicsHelperClass*> pair;
         pair.first = byteArray;
@@ -241,15 +221,16 @@ BArrayList ParamCommand::getBArrayFromContList(GraphicsHelperList contList) {
     return list;
 }
 
-QList<PairCont> ParamCommand::compoundArrays(BArrayList oldList, BArrayList newList) {
+QList<PairCont> ParamCommand::compoundArrays(BArrayList oldList, BArrayList newList)
+{
     QList<PairCont> list;
-    for (int i=0; i<oldList.size(); i++) {
-        for (int j=0; j<newList.size(); j++) {
-            if (oldList[i].second == newList[j].second) {
+    for (auto &oldPair : oldList) {
+        for (auto &newPair : newList) {
+            if (oldPair.second == newPair.second) {
                 PairCont pair;
-                pair.oldBArray = oldList[i].first;
-                pair.gHelper = oldList[i].second;
-                pair.newBArray = newList[j].first;
+                pair.oldBArray = oldPair.first;
+                pair.gHelper   = oldPair.second;
+                pair.newBArray = newPair.first;
                 list.append(pair);
             }
         }
@@ -257,24 +238,3 @@ QList<PairCont> ParamCommand::compoundArrays(BArrayList oldList, BArrayList newL
     return list;
 }
 
-/*
- *
-ParamsContainerCommand::ParamsContainerCommand(QList<PairCont> list, QUndoCommand *parent) : QUndoCommand(parent) {
-    m_dataList = list;
-    m_create = true;
-    this->setText(QObject::tr("Changing Container's parameters"));
-}
-
-void ParamsContainerCommand::redo() {
-
-}
-
-void ParamsContainerCommand::undo() {
-
-}
-
-
-
-
-
-*/

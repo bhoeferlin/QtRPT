@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ limitations under the License.
 #include "GraphicsBox.h"
 #include <QByteArray>
 #include <QBrush>
+#include <QGraphicsLayout>
 #include <QLinearGradient>
 #include <QApplication>
 #include <QDebug>
@@ -31,39 +32,42 @@ limitations under the License.
 #include <QAbstractTextDocumentLayout>
 #include <QBuffer>
 
-GraphicsBox::GraphicsBox():
-        _outterborderColor(Qt::black),
-        _outterborderPen()
+GraphicsBox::GraphicsBox()
 {
-    _location = QPointF(0,0);
-    _dragStart = QPointF(0,0);
-    _width = 200;
-    _height = 50;
+    m_width = 200;
+    m_height = 20;
+    m_RenderingMode = 0;
 
-    _XcornerGrabBuffer = -3;
-    _YcornerGrabBuffer = -3;
-    _drawingWidth = (  _width -   _XcornerGrabBuffer);
-    _drawingHeight = ( _height -  _YcornerGrabBuffer);
-    _drawingOrigenX = ( _XcornerGrabBuffer);
-    _drawingOrigenY = ( _YcornerGrabBuffer);
+    m_XcornerGrabBuffer = -3;
+    m_YcornerGrabBuffer = -3;
+    m_drawingWidth = (m_width - m_XcornerGrabBuffer);
+    m_drawingHeight = (m_height - m_YcornerGrabBuffer);
+    m_drawingOrigenX = (m_XcornerGrabBuffer);
+    m_drawingOrigenY = (m_YcornerGrabBuffer);
 
-    for (unsigned int i=0; i<sizeof(_corners)/sizeof(*_corners); i++)
-        _corners[i] = nullptr;
+    m_corners.resize(8);
+    for (auto &corner : m_corners)
+        corner = (SPtrCorner)nullptr;
 
     setFlag(QGraphicsItem::ItemIsSelectable,true);
     setFlag(QGraphicsItem::ItemIsMovable,true);
     setFlag(ItemSendsGeometryChanges,true);
 
+    m_paddingX = 0;
+    m_paddingY = 0;
     m_autoHeight = false;
     m_borderIsVisible = true;
-    m_backgroundColor = Qt::white;
     m_highlighting = "";
     m_formatString = "";
+    m_inputFormatString = "";
     m_text = tr("New Label");
+    m_textRotate = 0;
     m_radius = 6;
-    m_barcode = nullptr;
-    m_crossTab = nullptr;
-    m_chart = nullptr;
+    m_barcode = (SPtrBarCode)nullptr;
+    m_crossTab = (SPtrCrossTab)nullptr;
+    m_chart = (SPtrQChart)nullptr;
+    m_outterborderPen.setWidth(1);
+    m_outterborderPen.setColor(m_outterborderColor);
 
     if (QApplication::layoutDirection() == Qt::RightToLeft) {
         m_textDirection = true;
@@ -73,59 +77,79 @@ GraphicsBox::GraphicsBox():
         m_alignment = Qt::AlignLeft | Qt::AlignVCenter;
     }
 
-    _outterborderPen.setWidth(1);
-    _outterborderPen.setColor(_outterborderColor);
-
     this->graphicsItem = this;
     this->adjustSize(0,0);
     this->setAcceptHoverEvents(true);
 }
 
-void GraphicsBox::setWidth(qreal value) {
-    _width = value;
+int GraphicsBox::paddingX()
+{
+    return m_paddingX;
+}
+
+int GraphicsBox::paddingY()
+{
+    return m_paddingY;
+}
+
+void GraphicsBox::setPaddingX(int value)
+{
+    m_paddingX = value;
+}
+
+void GraphicsBox::setPaddingY(int value)
+{
+    m_paddingY = value;
+}
+
+void GraphicsBox::setWidth(qreal value)
+{
+    m_width = value;
     adjustSize(0,0);
     setCornerPositions();
-    if (this->scene() != 0)
+    if (this->scene() != nullptr)
         this->scene()->update();
 }
 
-void GraphicsBox::setHeight(qreal value) {
-    _height = value;
+void GraphicsBox::setHeight(qreal value)
+{
+    m_height = value;
     adjustSize(0,0);
     setCornerPositions();
-    if (this->scene() != 0)
+    if (this->scene() != nullptr)
         this->scene()->update();
 }
 
-void GraphicsBox::adjustSize(int x, int y) {
-    _width += x;
-    _height += y;
+void GraphicsBox::adjustSize(int x, int y)
+{
+    m_width += x;
+    m_height += y;
 
-    _drawingWidth  =  _width + _XcornerGrabBuffer;
-    _drawingHeight =  _height + _YcornerGrabBuffer;
+    m_drawingWidth  =  m_width + m_XcornerGrabBuffer;
+    m_drawingHeight =  m_height + m_YcornerGrabBuffer;
 
     if (m_chart != nullptr) {
-        m_chart->resize(_width, _height);
+        m_chartView->resize(m_width, m_height);
+        m_chart->resize(m_width, m_height);
     }
     if (m_crossTab != nullptr) {
-        m_crossTab->rect.setHeight(_height);
-        m_crossTab->rect.setWidth(_width);
+        m_crossTab->rect.setHeight(m_height);
+        m_crossTab->rect.setWidth(m_width);
     }
 }
 
-bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
-    //qDebug() << " QEvent == " + QString::number(event->type());
+bool GraphicsBox::sceneEventFilter(QGraphicsItem *watched, QEvent *event)
+{
+    CornerGrabber *corner = dynamic_cast<CornerGrabber *>(watched);
+    if (corner == nullptr) return false; // not expected to get here
 
-    CornerGrabber * corner = dynamic_cast<CornerGrabber *>(watched);
-    if ( corner == NULL) return false; // not expected to get here
-
-    QGraphicsSceneMouseEvent * mevent = dynamic_cast<QGraphicsSceneMouseEvent*>(event);
-    if ( mevent == NULL) {
+    QGraphicsSceneMouseEvent *mevent = dynamic_cast<QGraphicsSceneMouseEvent*>(event);
+    if (mevent == nullptr) {
         // this is not one of the mouse events we are interrested in
         return false;
     }
 
-    switch (event->type() ) {
+    switch (event->type()) {
         // if the mouse went down, record the x,y coords of the press, record it inside the corner object
         case QEvent::GraphicsSceneMousePress: {
                 corner->setMouseState(CornerGrabber::kMouseDown);
@@ -133,10 +157,9 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
                 corner->mouseDownY = mevent->pos().y();
 
                 //Посылаем сигнал в сцену для отслеживания Ундо при перемещении концов
-                GraphicsScene *model = qobject_cast<GraphicsScene *>(scene());
-                if (model) {
+                auto model = qobject_cast<GraphicsScene *>(scene());
+                if (model)
                     model->itemMoving(this);
-                }
             }
             break;
         case QEvent::GraphicsSceneMouseRelease: {
@@ -144,7 +167,7 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
             }
             break;
         case QEvent::GraphicsSceneMouseMove: {
-                corner->setMouseState(CornerGrabber::kMouseMoving );
+                corner->setMouseState(CornerGrabber::kMouseMoving);
             }
             break;
         default:
@@ -153,7 +176,7 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
             break;
     }
 
-    if (corner->getMouseState() == CornerGrabber::kMouseMoving ) {
+    if (corner->getMouseState() == CornerGrabber::kMouseMoving) {
         qreal x = mevent->pos().x(), y = mevent->pos().y();
 
         // depending on which corner has been grabbed, we want to move the position
@@ -204,11 +227,11 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
         int xMoved = corner->mouseDownX - x;
         int yMoved = corner->mouseDownY - y;
 
-        int newWidth = _width + ( XaxisSign * xMoved);
-        int newHeight = _height + (YaxisSign * yMoved) ;
+        int newWidth = m_width + ( XaxisSign * xMoved);
+        int newHeight = m_height + (YaxisSign * yMoved) ;
 
-        int deltaWidth  =   newWidth - _width ;
-        int deltaHeight =   newHeight - _height ;
+        int deltaWidth  =   newWidth - m_width ;
+        int deltaHeight =   newHeight - m_height ;
 
         adjustSize(  deltaWidth ,   deltaHeight);
 
@@ -236,7 +259,7 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
             int newXpos = this->pos().x() + deltaWidth;
             this->setPos(newXpos, this->pos().y());
         }
-        GraphicsScene *m_scene = qobject_cast<GraphicsScene *>(scene());
+        auto m_scene = qobject_cast<GraphicsScene *>(scene());
         m_scene->itemResizing(this);
         setCornerPositions();
         this->scene()->update();
@@ -245,188 +268,231 @@ bool GraphicsBox::sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) {
     return true;// true => do not send event to watched - we are finished with this event
 }
 
-QPointF GraphicsBox::getPos() {
-    return _location;
+QPointF GraphicsBox::getPos()
+{
+    return m_location;
 }
 
-void GraphicsBox::setPos(QPointF pos) {
-    _location = pos;
+void GraphicsBox::setPos(QPointF pos)
+{
+    m_location = pos;
     QGraphicsItem::setPos(pos);
 }
 
-void GraphicsBox::setPos(qreal x, qreal y) {
+void GraphicsBox::setPos(qreal x, qreal y)
+{
     setPos(QPoint(x,y));
 }
 
-//for supporting moving the box across the scene
-void GraphicsBox::mouseReleaseEvent ( QGraphicsSceneMouseEvent * event ) {
+void GraphicsBox::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
+{
+    this->scene()->update();
+}
+
+void GraphicsBox::hoverEnterEvent(QGraphicsSceneHoverEvent *)
+{
+    this->scene()->update();
+}
+
+// for supporting moving the box across the scene
+void GraphicsBox::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
     QGraphicsItem::mouseReleaseEvent(event);
     event->setAccepted(true);
+
+    auto model = qobject_cast<GraphicsScene *>(scene());
+    int numMoved = model->itemsMoved().size();
+
+    if (numMoved > 1) {
+        qDebug() << model->selectedItems().size();
+        qDebug() << model->itemsSelected().size();
+        return;
+    }
+
+    this->setSelected(this->isSelected());
 }
 
 // for supporting moving the box across the scene
-void GraphicsBox::mousePressEvent ( QGraphicsSceneMouseEvent * event ) {
+void GraphicsBox::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
     QGraphicsItem::mousePressEvent(event);
     event->setAccepted(true);
-    _dragStart = event->pos();
+
+    if (event->button() == Qt::LeftButton)
+        m_dragStart = event->pos();
+
     setFlag(QGraphicsItem::ItemIsSelectable, true);
-    this->setSelected(!this->isSelected());
+    setFlag(QGraphicsItem::ItemIsMovable, true);
+
+    if (QApplication::keyboardModifiers() == Qt::ControlModifier)
+        this->setSelected(!this->isSelected());
+    else {
+        if (this->scene()->selectedItems().size() == 1)
+            this->setSelected(true);
+    }
 }
 
 // for supporting moving the box across the scene
-void GraphicsBox::mouseMoveEvent ( QGraphicsSceneMouseEvent * event ) {
-    if (this->type() == ItemType::GBand) return;
-    QGraphicsItem::mouseMoveEvent(event); // move the item...
-    GraphicsScene *m_scene = qobject_cast<GraphicsScene *>(scene());
+void GraphicsBox::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
+    if (this->type() == ItemType::GBand)
+        return;
 
-    ReportBand *band = static_cast<ReportBand*>(this->parentItem());
-    if (band != 0) {
+    if (event->buttons() & Qt::LeftButton) {
+        int distance = (event->pos() - m_dragStart).manhattanLength();
+        if (distance < QApplication::startDragDistance())
+            return;
+    }
+
+
+    QGraphicsItem::mouseMoveEvent(event); // move the item...
+
+    auto m_scene = qobject_cast<GraphicsScene *>(scene());
+
+    auto band = qgraphicsitem_cast<ReportBand*>(this->parentItem());
+    if (band != nullptr) {
         bool toBound = false;
         if (x() <= 0) {
             setPos(0, y());
             toBound = true;
-        } else if (x() > band->getWidth()-this->getWidth()) {
-            setPos(band->getWidth()-this->getWidth(), y());
+        } else if (x() > band->getWidth() - this->getWidth()) {
+            setPos(band->getWidth() - this->getWidth(), y());
             toBound = true;
         }
 
         if (y() <= band->titleHeight) {
             setPos(x(), band->titleHeight);
             toBound = true;
-        } else if (y() > band->getHeight()-this->getHeight()) {
-            setPos(x(), band->getHeight()-this->getHeight());
+        } else if (y() > band->getHeight() - this->getHeight()) {
+            setPos(x(), band->getHeight() - this->getHeight());
             toBound = true;
         }
+
         m_scene->itemResizing(this);
         if (toBound == true) return;
     }
 
     QPointF newPos = event->pos() ;
-    _location += (newPos - _dragStart);
-    this->setPos(_location);
+    m_location += (newPos - m_dragStart);
+    this->setPos(m_location);
     this->scene()->update();
 }
 
-void GraphicsBox::setSelected(bool selected_) {
-    QGraphicsItem::setSelected(selected_);
+void GraphicsBox::setSelected(bool selected)
+{
+    QGraphicsItem::setSelected(selected);
     if (itemInTree != nullptr)
-        itemInTree->setSelected(selected_);
-    if (selected_) {
+        itemInTree->setSelected(selected);
+
+    if (selected) {
         createCorners();
-        GraphicsScene *m_scene = qobject_cast<GraphicsScene *>(scene());
-        emit m_scene->itemSelected(this);
+        auto m_scene = qobject_cast<GraphicsScene *>(scene());
+        m_scene->itemSelect(this);
     } else
         destroyCorners();
+    this->scene()->update();
 }
 
-bool GraphicsBox::isSelected() {
+bool GraphicsBox::isSelected()
+{
     if (itemInTree != nullptr)
         return itemInTree->isSelected();
+
     return false;
 }
 
 // create the corner grabbers
-void GraphicsBox::createCorners() {
-    _outterborderColor = m_borderColor;
+void GraphicsBox::createCorners()
+{
+    m_outterborderColor = m_borderColor;
 
     if (type() != ItemType::GBand) {
-        if (_corners[0] == nullptr) {
-            _corners[0] = new CornerGrabber(this,0);
-            _corners[0]->installSceneEventFilter(this);
+        if (m_corners[0] == nullptr) {
+            m_corners[0] = SPtrCorner(new CornerGrabber(this,0));
+            m_corners[0]->installSceneEventFilter(this);
         }
-        if (_corners[1] == nullptr) {
-            _corners[1] = new CornerGrabber(this,1);
-            _corners[1]->installSceneEventFilter(this);
+        if (m_corners[1] == nullptr) {
+            m_corners[1] = SPtrCorner(new CornerGrabber(this,1));
+            m_corners[1]->installSceneEventFilter(this);
         }
-        if (_corners[5] == nullptr) {  //top-center
-            _corners[5] = new CornerGrabber(this,5);
-            _corners[5]->installSceneEventFilter(this);
+        if (m_corners[5] == nullptr) {  //top-center
+            m_corners[5] = SPtrCorner(new CornerGrabber(this,5));
+            m_corners[5]->installSceneEventFilter(this);
         }
-        if (_corners[6] == nullptr) {  //left-center
-            _corners[6] = new CornerGrabber(this,6);
-            _corners[6]->installSceneEventFilter(this);
+        if (m_corners[6] == nullptr) {  //left-center
+            m_corners[6] = SPtrCorner(new CornerGrabber(this,6));
+            m_corners[6]->installSceneEventFilter(this);
         }
-        if (_corners[7] == nullptr) {  //rigth-center
-            _corners[7] = new CornerGrabber(this,7);
-            _corners[7]->installSceneEventFilter(this);
+        if (m_corners[7] == nullptr) {  //rigth-center
+            m_corners[7] = SPtrCorner(new CornerGrabber(this,7));
+            m_corners[7]->installSceneEventFilter(this);
         }
     }
-    if (_corners[2] == nullptr) {
-        _corners[2] = new CornerGrabber(this,2);
-        _corners[2]->installSceneEventFilter(this);
+    if (m_corners[2] == nullptr) {
+        m_corners[2] = SPtrCorner(new CornerGrabber(this,2));
+        m_corners[2]->installSceneEventFilter(this);
     }
-    if (_corners[3] == nullptr) {
-        _corners[3] = new CornerGrabber(this,3);
-        _corners[3]->installSceneEventFilter(this);
+    if (m_corners[3] == nullptr) {
+        m_corners[3] = SPtrCorner(new CornerGrabber(this,3));
+        m_corners[3]->installSceneEventFilter(this);
     }
-    if (_corners[4] == nullptr) {  //bottom-center
-        _corners[4] = new CornerGrabber(this,4);
-        _corners[4]->installSceneEventFilter(this);
+    if (m_corners[4] == nullptr) {  //bottom-center
+        m_corners[4] = SPtrCorner(new CornerGrabber(this,4));
+        m_corners[4]->installSceneEventFilter(this);
     }
     setCornerPositions();
 }
 
-// remove the corner grabbers
-void GraphicsBox::destroyCorners() {
-    _outterborderColor = m_borderColor;
-
-    for (unsigned int i=0; i<sizeof(_corners)/sizeof(*_corners); i++) {
-        if (_corners[i] != nullptr) {
-            _corners[i]->setParentItem(NULL);
-            delete _corners[i];
-            _corners[i] = nullptr;
-        }
-    }
+void GraphicsBox::setCornerPositions()
+{
+    if (m_corners[0] != nullptr)  //top-left
+        m_corners[0]->setPos(m_drawingOrigenX, m_drawingOrigenY);
+    if (m_corners[1] != nullptr)
+        m_corners[1]->setPos(m_drawingWidth,  m_drawingOrigenY);
+    if (m_corners[2] != nullptr)
+        m_corners[2]->setPos(m_drawingWidth , m_drawingHeight);
+    if (m_corners[3] != nullptr)
+        m_corners[3]->setPos(m_drawingOrigenX, m_drawingHeight);
+    if (m_corners[4] != nullptr) //bottom-center
+        m_corners[4]->setPos((m_drawingWidth - m_drawingOrigenX)/2, m_drawingHeight);
+    if (m_corners[5] != nullptr) //top-center
+        m_corners[5]->setPos((m_drawingWidth - m_drawingOrigenX)/2, m_drawingOrigenY);
+    if (m_corners[6] != nullptr) //left-center
+        m_corners[6]->setPos(m_drawingOrigenX, (m_drawingHeight + m_drawingOrigenY)/2);
+    if (m_corners[7] != nullptr) //rigth-center
+        m_corners[7]->setPos(m_drawingWidth, (m_drawingHeight + m_drawingOrigenY)/2);
 }
 
-void GraphicsBox::hoverLeaveEvent ( QGraphicsSceneHoverEvent * ) {
-    QApplication::restoreOverrideCursor();
+QRectF GraphicsBox::boundingRect() const
+{
+    return QRectF(0, 0, m_width-1, m_height);
 }
 
-void GraphicsBox::setCornerPositions() {
-    if (_corners[0] != nullptr)  //top-left
-        _corners[0]->setPos(_drawingOrigenX, _drawingOrigenY);
-    if (_corners[1] != nullptr)
-        _corners[1]->setPos(_drawingWidth,  _drawingOrigenY);
-    if (_corners[2] != nullptr)
-        _corners[2]->setPos(_drawingWidth , _drawingHeight);
-    if (_corners[3] != nullptr)
-        _corners[3]->setPos(_drawingOrigenX, _drawingHeight);
-    if (_corners[4] != nullptr) //bottom-center
-        _corners[4]->setPos((_drawingWidth-_drawingOrigenX)/2, _drawingHeight);
-    if (_corners[5] != nullptr) //top-center
-        _corners[5]->setPos((_drawingWidth-_drawingOrigenX)/2, _drawingOrigenY);
-    if (_corners[6] != nullptr) //left-center
-        _corners[6]->setPos(_drawingOrigenX, (_drawingHeight-_drawingOrigenY)/2);
-    if (_corners[7] != nullptr) //rigth-center
-        _corners[7]->setPos(_drawingWidth, (_drawingHeight-_drawingOrigenY)/2);
-}
-
-QRectF GraphicsBox::boundingRect() const {
-    return QRectF(0,0,_width-1,_height);
-}
-
-void GraphicsBox::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) {
+void GraphicsBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
+{
     QBrush brush2(m_backgroundColor,Qt::SolidPattern);
 
-    _outterborderPen.setCapStyle(Qt::RoundCap);
-    _outterborderPen.setStyle(borderStyle());
-    _outterborderPen.setWidth(getBorderWidth());
+    m_outterborderPen.setCapStyle(Qt::RoundCap);
+    m_outterborderPen.setStyle(borderStyle());
+    m_outterborderPen.setWidth(getBorderWidth());
 
     if (m_borderIsVisible)
-        _outterborderPen.setColor( m_borderColor );
+        m_outterborderPen.setColor( m_borderColor );
     else
-        _outterborderPen.setColor(QColor(0,0,0,0));
+        m_outterborderPen.setColor(QColor(0,0,0,0));
 
-    painter->setPen(_outterborderPen);
+    painter->setPen(m_outterborderPen);
 
-    QRectF rcT (QPointF(2,0), QPointF(getWidth(), getHeight()));
+
 
     if (type() == ItemType::GBand) {
+        auto band = qgraphicsitem_cast<ReportBand*>(this);
+        auto titleHeight = band->titleHeight;
+
         QRectF rc (QPointF(0,0), QPointF(getWidth()-1, getHeight()));
         painter->drawRect(rc);
 
-        QPointF p2R(getWidth(),20);
+        QPointF p2R(getWidth(), titleHeight);
         QRectF textRect(QPointF(0,0), p2R);
         QRectF fillRect(QPointF(1,1), QPointF(p2R.x()-1,p2R.y()));
         painter->fillRect(fillRect, QBrush(QColor(232,183,98,255)));
@@ -435,16 +501,22 @@ void GraphicsBox::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QW
         font.setBold(true);
         painter->setFont(font);
 
-        painter->drawLine(QPointF(0,20),  p2R);
+        painter->drawLine(QPointF(0, titleHeight),  p2R);
         painter->drawText(textRect,Qt::AlignCenter,m_text);
-        painter->drawPixmap(QRect(_drawingWidth-18,2,16,16), m_bandPixmap);
+        painter->drawPixmap(QRect(m_drawingWidth - titleHeight-2,
+                                  1,
+                                  titleHeight-2,
+                                  titleHeight-2), m_bandPixmap);
     }
     if (type() == ItemType::GBox) {
+        painter->save();
+
+        QRectF rcT (QPointF(0,0), QPointF(getWidth(), getHeight()));
+
         QRectF rc (QPointF(0,0), QPointF(getWidth(), getHeight()));
         switch(this->getFieldType()) {
             case Text:
-            case TextImage:
-                {
+            case TextImage: {
                 if (m_backgroundColor != Qt::white)
                     painter->fillRect(rc, brush2);
 
@@ -457,16 +529,47 @@ void GraphicsBox::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QW
                 if (borderIsCheck(FrameBottom))
                     painter->drawLine(0,getHeight(), getWidth()-1, getHeight()); //bottom
 
-                _outterborderPen.setColor( m_fontColor );
-                painter->setPen(_outterborderPen);
+                int flags = m_alignment;
+                if (m_textWrap == true)
+                    flags = flags | Qt::TextWordWrap;
 
+                m_outterborderPen.setColor( m_fontColor );
+                painter->setPen(m_outterborderPen);
                 painter->setFont(m_font);
-                painter->drawText(rcT,m_alignment,m_text);
+
+                switch (m_textRotate) {
+                case 1: {  //90 degres
+                    painter->translate(getWidth(), 0);
+                    painter->rotate(90);
+                    drawText(painter, m_text, m_font, m_fontColor, rcT, flags,
+                             m_RenderingMode, m_textRotate, m_paddingX, m_paddingY);
+                    break;
+                }
+                case 2: {  //180 degres
+                    painter->translate(getWidth(), getHeight());
+                    painter->rotate(180);
+                    drawText(painter, m_text, m_font, m_fontColor, rcT, flags,
+                             m_RenderingMode, m_textRotate, m_paddingX, m_paddingY);
+                    break;
+                }
+                case 3: {  //270 degres
+                    painter->translate(0, getHeight());
+                    painter->rotate(-90);
+                    drawText(painter, m_text, m_font, m_fontColor, rcT, flags,
+                             m_RenderingMode, m_textRotate, m_paddingX, m_paddingY);
+                    break;
+                }
+                default:
+                    drawText(painter, m_text, m_font, m_fontColor, rcT, flags,
+                             m_RenderingMode, m_textRotate, m_paddingX, m_paddingY);
+                }
+
                 break;
             }
             case TextRich: {
                 QTextDocument td;
                 td.setHtml(m_text);
+                td.setTextWidth(getWidth());
                 QAbstractTextDocumentLayout::PaintContext ctx;
                 ctx.clip = QRectF( 0, 0, getWidth(), getHeight() );
                 td.documentLayout()->draw( painter, ctx );
@@ -548,13 +651,14 @@ void GraphicsBox::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QW
             case Barcode: {
                 if (m_barcode != nullptr) {
                     m_barcode->setValue(m_text);
-                    m_barcode->drawBarcode(painter,0,0,this->getWidth(),this->getHeight());
+                    m_barcode->drawBarcode(painter, 0, 0, this->getWidth(), this->getHeight());
                 }
                 break;
             }
             case Diagram: {
                 if (m_chart != nullptr) {
-                    m_chart->paintChart(painter);
+                    QRectF rect = QRectF(0, 0, getWidth(), getHeight());
+                    m_chartView.data()->render(painter, rect, m_chartView.data()->rect());
                 }
                 break;
             }
@@ -562,119 +666,86 @@ void GraphicsBox::paint (QPainter *painter, const QStyleOptionGraphicsItem *, QW
                 painter->setPen(QPen( getColorValue(BorderColor), 1, Qt::SolidLine, Qt::RoundCap));
 
                 int fieldWidth = m_crossTab->rect.width()/m_crossTab->colCount();
-                int fieldheight = m_crossTab->rect.height()/m_crossTab->rowCount();
-                int posInCell_V = fieldheight/2;
-                int posInCell_H = 5;
+                int fieldheight = m_crossTab->rowHeight();
+                //int posInCell_V = fieldheight/2+5;
+                //int posInCell_H = 5;
 
-                //grid drawing
-                for(int row=0; row<m_crossTab->rowCount()+1; row++) {
-                    QPoint p1(0, row*fieldheight),
-                           p2(this->getWidth(), row*fieldheight);
-                    if (row != m_crossTab->rowCount() )
-                        painter->drawLine(p1,p2);
-                    else {
-                        QPoint p1(0, m_crossTab->rect.height()),
-                               p2(this->getWidth(), m_crossTab->rect.height());
-                        painter->drawLine(p1,p2);
-                    }
+                QVarLengthArray<QLineF, 100> lines;
+                painter->drawRect(0, 0,
+                                  m_crossTab->rect.width(),
+                                  m_crossTab->rect.height());
 
-                    if (m_crossTab->isRowHeaderVisible()) {
-                        if (row<m_crossTab->rowDataCount()) {
-                            int tmpRow = row;
-                            if (m_crossTab->isColHeaderVisible()) {
-                                tmpRow += 1;
-                            }
+                painter->setPen(QPen( getColorValue(BorderColor), 1, Qt::DashLine, Qt::RoundCap));
 
-                            QString row_txt = m_crossTab->getRowName(row);
-                            QPoint p1(posInCell_H, (tmpRow)*fieldheight+posInCell_V);
-                            painter->drawText(p1,row_txt);
-                        }
+                //vertical lines
+                for (qreal x = 0; x <= m_crossTab->rect.right(); x += fieldWidth)
+                    lines.append(QLineF(x, 0,
+                                        x, m_crossTab->rect.bottom()));
 
-                        //Row "total" - total per col
-                        if (m_crossTab->isColTotalVisible()) {
-                            if (row == m_crossTab->rowCount()) {
-                                QPoint p1(posInCell_H, (m_crossTab->rowCount()-1)*fieldheight+posInCell_V);
-                                painter->drawText(p1,tr("Total"));
-                            }
-                        }
-                    }
-                }
-                for(int col=0; col<m_crossTab->colCount()+1; col++) {
-                    QPoint p1(col*fieldWidth, 0),
-                           p2(col*fieldWidth, this->getHeight());
-                    if (col != m_crossTab->colCount() )
-                        painter->drawLine(p1,p2);
-                    else {
-                        QPoint p1(this->getWidth(), 0),
-                               p2(this->getWidth(), this->getHeight());
-                        painter->drawLine(p1,p2);
-                    }
+                //horizontal lines
+                for (qreal y = 0; y <= m_crossTab->rect.bottom(); y += fieldheight)
+                    lines.append(QLineF(m_crossTab->rect.left(), y,
+                                        m_crossTab->rect.right(), y));
 
-                    if (m_crossTab->isColHeaderVisible()) {
-                        if (col<m_crossTab->colDataCount()) {
-                            int tmpCol = col;
-                            if (m_crossTab->isRowHeaderVisible()) {
-                                tmpCol += 1;
-                            }
-
-                            QString col_txt = m_crossTab->getColName(col);
-                            QPoint p1(tmpCol*fieldWidth+posInCell_H, posInCell_V);
-                            painter->drawText(p1,col_txt);
-                        }
-
-                        //Col "total" - total per row
-                        if (m_crossTab->isRowTotalVisible()) {
-                            if (col == m_crossTab->colCount()) {
-                                QPoint p1((m_crossTab->colCount()-1) * fieldWidth+posInCell_H, posInCell_V);
-                                painter->drawText(p1,tr("Total"));
-                            }
-                        }
-                    }
-                }
-
+                painter->drawLines(lines.data(), lines.size());
+                painter->setPen(QPen( getColorValue(BorderColor), 1, Qt::SolidLine, Qt::RoundCap));
                 break;
             }
             default: {
 
             }
         }
+
+        painter->restore();
     }
 }
 
-void GraphicsBox::mouseMoveEvent(QGraphicsSceneDragDropEvent *event) {
+void GraphicsBox::mouseMoveEvent(QGraphicsSceneDragDropEvent *event)
+{
     event->setAccepted(false);
 }
 
-void GraphicsBox::mousePressEvent(QGraphicsSceneDragDropEvent *event) {
+void GraphicsBox::mousePressEvent(QGraphicsSceneDragDropEvent *event)
+{
     event->setAccepted(false);
 }
 
-void GraphicsBox::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
-    Q_UNUSED(event);
+void GraphicsBox::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
+{
+    Q_UNUSED(event)
+
     edit();
     //QGraphicsItem::mouseDoubleClickEvent(event);
 }
 
-QVariant GraphicsBox::itemChange(GraphicsItemChange change, const QVariant &value) {
+QVariant GraphicsBox::itemChange(GraphicsItemChange change, const QVariant &value)
+{
     if (change == ItemPositionChange) {
-        GraphicsScene *m_scene = qobject_cast<GraphicsScene *>(scene());
-        if (m_scene) {
+        auto m_scene = qobject_cast<GraphicsScene *>(scene());
+        if (m_scene)
             m_scene->itemMoving(this);
-        }
     }
+
     return QGraphicsItem::itemChange(change, value);
 }
 
-GraphicsBox* GraphicsBox::clone() {
+GraphicsBox* GraphicsBox::clone()
+{
     QPoint newPos(this->x(),this->y());
     newPos.setY(newPos.y()+5);
     newPos.setX(newPos.x()+5);
 
-    GraphicsBox *newContField  = new GraphicsBox();
+    auto newContField  = new GraphicsBox();
+    newContField->setBorderVisible(this->borderIsVisible());
+    newContField->setColorValue(BackgroundColor, this->getColorValue(BackgroundColor));
+    newContField->setColorValue(BorderColor, this->getColorValue(BorderColor));
+    newContField->setColorValue(FontColor, this->getColorValue(FontColor));
     newContField->setColorValue(FrameTop, this->getColorValue(FrameTop));
     newContField->setColorValue(FrameBottom, this->getColorValue(FrameBottom));
     newContField->setColorValue(FrameLeft, this->getColorValue(FrameLeft));
     newContField->setColorValue(FrameRight, this->getColorValue(FrameRight));
+    newContField->setBorderWidth(this->getBorderWidth());
+    newContField->setBorderStyle(this->borderStyle());
     newContField->setFieldType(this->getFieldType());
     newContField->setText(this->getText());
     newContField->setFont(this->getFont());
@@ -683,7 +754,10 @@ GraphicsBox* GraphicsBox::clone() {
     newContField->setWidth(this->getWidth());
     newContField->setHeight(this->getHeight());
     newContField->m_formatString = this->m_formatString;
+    newContField->m_inputFormatString = this->m_inputFormatString;
     newContField->m_textWrap = this->m_textWrap;
+    newContField->m_textRotate = this->m_textRotate;
+
     if (newContField->getFieldType() == Image) {
         newContField->setImgFromat(this->getImgFormat());
         newContField->setIgnoreAspectRatio(this->getIgnoreAspectRatio());
@@ -698,21 +772,27 @@ GraphicsBox* GraphicsBox::clone() {
     }
     newContField->setVisible(true);
     newContField->setPos(newPos);
+
     return newContField;
 }
 
-void GraphicsBox::loadParamFromXML(QDomElement e) {
+void GraphicsBox::loadParamFromXML(QDomElement e)
+{
     GraphicsHelperClass::loadParamFromXML(e);
     this->setFieldType(m_type);
 
-    this->setPos(e.attribute("left").toInt(), e.attribute("top").toInt()+20);
+    this->setPos(e.attribute("left").toInt(), e.attribute("top").toInt()+ReportBand::titleHeight);
     this->setWidth(e.attribute("width").toInt());
     this->setHeight(e.attribute("height").toInt());
 
     if (this->m_type == Text) {
         this->m_formatString = e.attribute("format","");
+        this->m_inputFormatString = e.attribute("input_format","");
         this->m_highlighting = e.attribute("highlighting","");
         m_textWrap = e.attribute("textWrap","1").toInt();
+        m_textRotate = e.attribute("rotate","0").toInt();
+        m_paddingX = e.attribute("paddingX","0").toInt();
+        m_paddingY = e.attribute("paddingY","0").toInt();
     } else if (this->m_type == Image || e.attribute("picture","text") != "text") {
         //load picture into lable
         QByteArray byteArray = QByteArray::fromBase64(e.attribute("picture","text").toLatin1());
@@ -720,37 +800,160 @@ void GraphicsBox::loadParamFromXML(QDomElement e) {
         m_pixmap = QPixmap::fromImage(QImage::fromData(byteArray, m_imgFormat.toLatin1().data()));
         m_ignoreAspectRatio = e.attribute("ignoreAspectRatio","1").toInt();
     } else if (this->m_type == Diagram) {
-        m_chart->setParams(e.attribute("showGrid","1").toInt(),
-                         e.attribute("showLegend","1").toInt(),
-                         e.attribute("showCaption","1").toInt(),
-                         e.attribute("showGraphCaption","1").toInt(),
-                         e.attribute("showPercent","1").toInt(),
-                         e.attribute("caption","Example"),
-                         e.attribute("autoFillData","0").toInt()
-                         );
-        m_chart->loadXML(e);
+        QColor color;
+        QBrush brush;
+
+        m_chart->removeAllSeries();
+        m_chart->setTitle(e.attribute("caption"));
+        QFont fnt =  m_chart->titleFont();
+        fnt.fromString(e.attribute("titleFont", m_chart->titleFont().toString()));
+        m_chart->setTitleFont(fnt);
+        m_chart->legend()->setVisible(e.attribute("showLegend", "1").toInt());
+        fnt =  m_chart->legend()->font();
+        fnt.fromString(e.attribute("legendFont", m_chart->legend()->font().toString()));
+        m_chart->legend()->setFont(fnt);
+
+        color = colorFromString(e.attribute("colorLegend"));
+        brush = m_chart->legend()->labelBrush();
+        brush.setColor(color);
+        m_chart->legend()->setLabelBrush(brush);
+
+        color = colorFromString(e.attribute("colorBackground"));
+        brush = m_chart->backgroundBrush();
+        brush.setColor(color);
+        brush.setStyle(Qt::SolidPattern);
+        m_chart->setBackgroundBrush(brush);
+
+        color = colorFromString(e.attribute("colorTitle"));
+        brush = m_chart->titleBrush();
+        brush.setColor(color);
+        m_chart->setTitleBrush(brush);
+
+        m_chart->setProperty("staticChart", e.attribute("staticChart", "1").toInt());
+
+        Qt::Alignment alig;
+        if (e.attribute("legendAligment").toInt() == 0) alig = Qt::AlignTop;
+        if (e.attribute("legendAligment").toInt() == 1) alig = Qt::AlignBottom;
+        if (e.attribute("legendAligment").toInt() == 2) alig = Qt::AlignLeft;
+        if (e.attribute("legendAligment").toInt() == 3) alig = Qt::AlignRight;
+        m_chart->legend()->setAlignment(alig);
+
+
+        if (e.attribute("chartType").contains("SeriesTypeLine")) {
+            QDomNode c = e.firstChild();
+            while(!c.isNull()) {
+                QDomElement graphElement = c.toElement();
+                if (!graphElement.isNull()) {
+                    auto series = new QLineSeries();
+                    series->setName(graphElement.attribute("caption"));
+                    series->setColor(colorFromString(graphElement.attribute("color")));
+                    series->setProperty("graphDS", graphElement.attribute("graphDS"));
+
+                    QDomNode v = graphElement.firstChild();
+                    while(!v.isNull()) {
+                        QDomElement valueElement = v.toElement();
+                        series->append(valueElement.attribute("x").toDouble(),
+                                       valueElement.attribute("y").toDouble());
+
+                        v = v.nextSibling();
+                    }
+
+                    m_chart->addSeries(series);
+                }
+
+                c = c.nextSibling();
+            }
+
+
+        }
+
+        if (e.attribute("chartType") == "SeriesTypeBar" ||
+            e.attribute("chartType") == "SeriesTypeStackedBar") {
+
+            QAbstractSeries *abstrSeries = nullptr;
+
+            if (e.attribute("chartType") == "SeriesTypeBar") {
+                auto series = new QBarSeries();
+                abstrSeries = series;
+            }
+            if (e.attribute("chartType") == "SeriesTypeStackedBar") {
+                auto series = new QStackedBarSeries();
+                abstrSeries = series;
+            }
+
+
+            QDomNode c = e.firstChild();
+            while(!c.isNull()) {
+                QDomElement graphElement = c.toElement();
+                if (!graphElement.isNull()) {
+                    auto barSet = new QBarSet(graphElement.attribute("caption"));
+                    barSet->setColor(colorFromString(graphElement.attribute("color")));
+                    barSet->setProperty("graphDS", graphElement.attribute("graphDS"));
+
+                    QDomNode v = graphElement.firstChild();
+                    while(!v.isNull()) {
+                        QDomElement valueElement = v.toElement();
+                        barSet->append(valueElement.attribute("val").toDouble());
+
+                        v = v.nextSibling();
+                    }
+
+
+
+                    if (abstrSeries->type() == QAbstractSeries::SeriesTypeStackedBar) {
+                        auto series = qobject_cast<QStackedBarSeries*>(abstrSeries);
+                        series->append(barSet);
+                    }
+                    if (abstrSeries->type() == QAbstractSeries::SeriesTypeBar) {
+                        auto series = qobject_cast<QBarSeries*>(abstrSeries);
+                        series->append(barSet);
+                    }
+                }
+
+                c = c.nextSibling();
+            }
+
+            m_chart->addSeries(abstrSeries);
+            m_chart->createDefaultAxes();
+            m_chart->update();
+        }
+
+        if (e.attribute("chartType") == "SeriesTypePie") {
+            auto series = new QPieSeries();
+            series->setName(e.attribute("caption"));
+            series->setHoleSize(e.attribute("holeSize", "0.00").toDouble());
+            series->setProperty("graphDS", e.attribute("graphDS"));
+
+            m_chart->addSeries(series);
+
+            QDomNode c = e.firstChild();
+            while(!c.isNull()) {
+                QDomElement graphElement = c.toElement();
+                if (!graphElement.isNull()) {
+                    auto slice = new QPieSlice(graphElement.attribute("caption"),
+                                               graphElement.attribute("value").toDouble(), series);
+                    slice->setExploded(graphElement.attribute("sliceExploaded").toInt());
+                    slice->setLabelVisible(graphElement.attribute("labelVisible").toInt());
+
+                    series->append(slice);
+
+                    QColor color = colorFromString(graphElement.attribute("color"));
+                    slice->setColor(color);
+                }
+                c = c.nextSibling();
+            }
+        }
+
+        m_chart->createDefaultAxes();
+        //m_chart->setTheme(QChart::ChartThemeBrownSand);
+
     } else if (this->m_type == Barcode) {
         setBarcodeType( (BarCode::BarcodeTypes)e.attribute("barcodeType","13").toInt() );
         setBarcodeFrameType( (BarCode::FrameTypes)e.attribute("barcodeFrameType","0").toInt() );
         setBarcodeHeight(e.attribute("barcodeHeight","50").toInt() );
     } else if (this->m_type == CrossTab) {
-        m_crossTab->setColHeaderVisible(e.attribute("crossTabColHeaderVisible","1").toInt());
-        m_crossTab->setRowHeaderVisible(e.attribute("crossTabRowHeaderVisible","1").toInt());
-        m_crossTab->setColTotalVisible(e.attribute("crossTabColTotalVisible","1").toInt());
-        m_crossTab->setRowTotalVisible(e.attribute("crossTabRowTotalVisible","1").toInt());
-        m_crossTab->clear();
-        QDomNode g = e.firstChild();
-        while(!g.isNull()) {
-            QDomElement ge = g.toElement(); // try to convert the node to an element.
-            if (ge.nodeName() == "row") {
-                m_crossTab->addRow(ge.attribute("caption"));
-            }
-            if (ge.nodeName() == "col") {
-                m_crossTab->addCol(ge.attribute("caption"));
-            }
-            g = g.nextSibling();
-        }
-        m_crossTab->initMatrix();
+        QDomElement elem = e;
+        m_crossTab->loadParamFromXML(elem);
     }
     m_text = e.attribute("value");
 
@@ -771,44 +974,42 @@ void GraphicsBox::loadParamFromXML(QDomElement e) {
     if (fntSize == 0) fntSize = 8;
     m_font.setPointSize(fntSize);
     this->m_autoHeight = e.attribute("autoHeight","0").toInt();
+    this->m_RenderingMode = e.attribute("renderingMode","0").toInt();
+	this->setZValue(e.attribute("ZValue","11").toInt());
 
     Qt::Alignment hAl, vAl;
-    if (e.attribute("aligmentH")== "hLeft")
-        hAl = Qt::AlignLeft;
-    else if (e.attribute("aligmentH")== "hRight")
-        hAl = Qt::AlignRight;
-    else if (e.attribute("aligmentH")== "hCenter")
-        hAl = Qt::AlignHCenter;
-    else if (e.attribute("aligmentH") == "hJustify")
-        hAl = Qt::AlignJustify;
-    else
-        hAl = Qt::AlignLeft;
+    if (e.attribute("aligmentH")== "hLeft")          hAl = Qt::AlignLeft;
+    else if (e.attribute("aligmentH")== "hRight")    hAl = Qt::AlignRight;
+    else if (e.attribute("aligmentH")== "hCenter")   hAl = Qt::AlignHCenter;
+    else if (e.attribute("aligmentH") == "hJustify") hAl = Qt::AlignJustify;
+    else                                             hAl = Qt::AlignLeft;
 
-    if (e.attribute("aligmentV") == "vTop")
-        vAl = Qt::AlignTop;
-    else if (e.attribute("aligmentV") == "vBottom")
-        vAl = Qt::AlignBottom;
-    else if (e.attribute("aligmentV") == "vCenter")
-        vAl = Qt::AlignVCenter;
-    else
-        vAl = Qt::AlignVCenter;
+    if (e.attribute("aligmentV") == "vTop")          vAl = Qt::AlignTop;
+    else if (e.attribute("aligmentV") == "vBottom")  vAl = Qt::AlignBottom;
+    else if (e.attribute("aligmentV") == "vCenter")  vAl = Qt::AlignVCenter;
+    else                                             vAl = Qt::AlignVCenter;
 
     m_alignment = hAl | vAl;
 }
 
-QDomElement GraphicsBox::saveParamToXML(QDomDocument *xmlDoc) {
+QDomElement GraphicsBox::saveParamToXML(QSharedPointer<QDomDocument> xmlDoc)
+{
     QDomElement elem = GraphicsHelperClass::saveParamToXML(xmlDoc);
 
-    elem.setAttribute("top",this->_location.y()-20);
-    elem.setAttribute("left",this->_location.x());
-    elem.setAttribute("width",this->_width);
-    elem.setAttribute("height",this->_height);
+    elem.setAttribute("top",this->m_location.y() - ReportBand::titleHeight);
+    elem.setAttribute("left",this->m_location.x());
+    elem.setAttribute("width",this->m_width);
+    elem.setAttribute("height",this->m_height);
 
     //---FROM TCONTAINERFIELD
     if (this->m_type == Text) {
         elem.setAttribute("format",this->m_formatString);
+        elem.setAttribute("input_format",this->m_inputFormatString);
         elem.setAttribute("highlighting",this->m_highlighting);
         elem.setAttribute("textWrap",this->m_textWrap);
+        elem.setAttribute("rotate",this->m_textRotate);
+        elem.setAttribute("paddingX",this->m_paddingX);
+        elem.setAttribute("paddingY",this->m_paddingY);
     }
     if (this->m_type == Image) {
         //Saving picture
@@ -826,23 +1027,112 @@ QDomElement GraphicsBox::saveParamToXML(QDomDocument *xmlDoc) {
         elem.setAttribute("ignoreAspectRatio",m_ignoreAspectRatio);
     }
     if (this->m_type == Diagram) {
-        elem.setAttribute("showGrid",m_chart->getParam(DrawGrid).toBool());
-        elem.setAttribute("showLegend",m_chart->getParam(ShowLegend).toBool());
-        elem.setAttribute("showCaption",m_chart->getParam(ShowCaption).toBool());
-        elem.setAttribute("showGraphCaption",m_chart->getParam(ShowGraphCaption).toBool());
-        elem.setAttribute("showPercent",m_chart->getParam(ShowPercent).toBool());
-        elem.setAttribute("caption",m_chart->getParam(Caption).toString());
-        elem.setAttribute("autoFillData",m_chart->getParam(AutoFillData).toBool());
+        if (m_chart->series().size() > 0) {
+            QString chartType;
+            QString strColor;
 
-        if (m_chart->getParam(AutoFillData).toBool()) {
-            //get info about graphs
-            for(auto graphParam : getChart()->getGraphParamList()) {
-                QDomElement graph = xmlDoc->createElement("graph");
-                graph.setAttribute("caption",graphParam.caption);
-                graph.setAttribute("value",graphParam.valueString);
-                graph.setAttribute("color",colorToString(graphParam.color));
-                elem.appendChild(graph);
+            if (m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypeLine) {
+                chartType = "SeriesTypeLine";
+
+                for (auto &absSeries : m_chart->series()) {
+                    auto series = qobject_cast<QLineSeries*>(absSeries);
+
+                    QDomElement graph = xmlDoc->createElement("graph");
+                    graph.setAttribute("color", colorToString(series->color()));
+                    graph.setAttribute("caption", series->name());
+                    graph.setAttribute("graphDS", series->property("graphDS").toString());
+
+                    for (int row = 0; row < series->count(); row++) {
+                        auto point = series->at(row);
+
+                        QDomElement valueElement = xmlDoc->createElement("value");
+                        valueElement.setAttribute("x", QString::number(point.x()));
+                        valueElement.setAttribute("y", QString::number(point.y()));
+                        graph.appendChild(valueElement);
+                    }
+
+                    elem.appendChild(graph);
+                }
             }
+            if (m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypeBar ||
+                m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypeStackedBar) {
+
+                QList<QBarSet *> barSets;
+
+
+                if (m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypeBar) {
+                    chartType = "SeriesTypeBar";
+
+                    auto series = qobject_cast<QBarSeries*>(m_chart->series().at(0));
+                    barSets = series->barSets();
+                }
+                if (m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypeStackedBar) {
+                    chartType = "SeriesTypeStackedBar";
+
+                    auto series = qobject_cast<QStackedBarSeries*>(m_chart->series().at(0));
+                    barSets = series->barSets();
+                }
+
+                for (auto &barSet : barSets) {
+                    QString graphDS = barSet->property("graphDS").toString();
+
+                    QDomElement graph = xmlDoc->createElement("graph");
+                    graph.setAttribute("color", colorToString(barSet->color()));
+                    graph.setAttribute("caption", barSet->label());
+                    graph.setAttribute("graphDS", graphDS);
+
+                    for (int row = 0; row < barSet->count(); row++) {
+                        auto value = barSet->at(row);
+
+                        QDomElement valueElement = xmlDoc->createElement("value");
+                        valueElement.setAttribute("val", QString::number(value));
+                        graph.appendChild(valueElement);
+                    }
+
+                    elem.appendChild(graph);
+                }
+            }
+            if (m_chart->series().at(0)->type() == QAbstractSeries::SeriesTypePie) {
+                chartType = "SeriesTypePie";
+
+                auto series = qobject_cast<QPieSeries*>(m_chart->series().at(0));
+                elem.setAttribute("graphDS", series->property("graphDS").toString());
+                elem.setAttribute("holeSize", series->holeSize());
+
+
+                for (auto &slice : series->slices()) {
+                    QDomElement graph = xmlDoc->createElement("graph");
+                    graph.setAttribute("color", colorToString(slice->color()));
+                    graph.setAttribute("caption", slice->label());
+                    graph.setAttribute("value", slice->value());
+                    graph.setAttribute("labelVisible", slice->isLabelVisible());
+                    graph.setAttribute("sliceExploaded", slice->isExploded());
+                    elem.appendChild(graph);
+                }
+            }
+
+            int currentIndex = 0;
+            if (m_chart->legend()->alignment() == Qt::AlignTop) currentIndex = 0;
+            if (m_chart->legend()->alignment() == Qt::AlignBottom) currentIndex = 1;
+            if (m_chart->legend()->alignment() == Qt::AlignLeft) currentIndex = 2;
+            if (m_chart->legend()->alignment() == Qt::AlignRight) currentIndex = 3;
+
+            elem.setAttribute("legendAligment", currentIndex);
+            elem.setAttribute("chartType", chartType);
+            elem.setAttribute("showLegend", m_chart->legend()->isVisible());
+            elem.setAttribute("legendFont", m_chart->legend()->font().toString());
+            elem.setAttribute("caption", m_chart->title());
+            elem.setAttribute("titleFont", m_chart->titleFont().toString());
+            elem.setAttribute("staticChart", m_chart->property("staticChart").toInt());
+
+            strColor = colorToString(m_chart->titleBrush().color());
+            elem.setAttribute("colorTitle", strColor);
+
+            strColor = colorToString(m_chart->backgroundBrush().color());
+            elem.setAttribute("colorBackground", strColor);
+
+            strColor = colorToString(m_chart->legend()->labelBrush().color());
+            elem.setAttribute("colorLegend", strColor);
         }
     }
     if (this->m_type == Barcode) {
@@ -851,42 +1141,20 @@ QDomElement GraphicsBox::saveParamToXML(QDomDocument *xmlDoc) {
         elem.setAttribute("barcodeHeight",m_barcode->getHeight());
     }
     if (this->m_type == CrossTab) {
-        elem.setAttribute("crossTabColHeaderVisible",m_crossTab->isColHeaderVisible());
-        elem.setAttribute("crossTabRowHeaderVisible",m_crossTab->isRowHeaderVisible());
-        elem.setAttribute("crossTabColTotalVisible",m_crossTab->isColTotalVisible());
-        elem.setAttribute("crossTabRowTotalVisible",m_crossTab->isRowTotalVisible());
-        for(int i=0; i<m_crossTab->rowDataCount(); i++) {
-            QDomElement row = xmlDoc->createElement("row");
-            row.setAttribute("caption",m_crossTab->getRowName(i));
-            elem.appendChild(row);
-        }
-        for(int i=0; i<m_crossTab->colDataCount(); i++) {
-            QDomElement col = xmlDoc->createElement("col");
-            col.setAttribute("caption",m_crossTab->getColName(i));
-            elem.appendChild(col);
-        }
+        m_crossTab->saveParamToXML(xmlDoc, elem);
     }
 
     QString hAl, vAl;
-    if (getAlignment() & Qt::AlignLeft)
-        hAl = "hLeft";
-    else if (getAlignment() & Qt::AlignRight)
-        hAl = "hRight";
-    else if (getAlignment() & Qt::AlignHCenter)
-        hAl = "hCenter";
-    else if (getAlignment() & Qt::AlignJustify)
-        hAl = "hJustify";
-    else
-        hAl = "hLeft";
+    if (getAlignment() & Qt::AlignLeft)         hAl = "hLeft";
+    else if (getAlignment() & Qt::AlignRight)   hAl = "hRight";
+    else if (getAlignment() & Qt::AlignHCenter) hAl = "hCenter";
+    else if (getAlignment() & Qt::AlignJustify) hAl = "hJustify";
+    else                                        hAl = "hLeft";
 
-    if (getAlignment() & Qt::AlignTop)
-        vAl = "vTop";
-    else if (getAlignment() & Qt::AlignBottom)
-        vAl = "vBottom";
-    else if (getAlignment() & Qt::AlignVCenter)
-        vAl = "vCenter";
-    else
-        vAl = "vCenter";
+    if (getAlignment() & Qt::AlignTop)          vAl = "vTop";
+    else if (getAlignment() & Qt::AlignBottom)  vAl = "vBottom";
+    else if (getAlignment() & Qt::AlignVCenter) vAl = "vCenter";
+    else                                        vAl = "vCenter";
 
     elem.setAttribute("aligmentH",hAl);
     elem.setAttribute("aligmentV",vAl);
@@ -896,8 +1164,12 @@ QDomElement GraphicsBox::saveParamToXML(QDomDocument *xmlDoc) {
     elem.setAttribute("fontItalic",m_font.italic());
     elem.setAttribute("fontUnderline",m_font.underline());
     elem.setAttribute("fontStrikeout",m_font.strikeOut());
-    if (m_font.family().isEmpty()) elem.setAttribute("fontFamily","Arial");
-    else elem.setAttribute("fontFamily",m_font.family());
+
+    if (m_font.family().isEmpty())
+        elem.setAttribute("fontFamily","Arial");
+    else
+        elem.setAttribute("fontFamily",m_font.family());
+
     elem.setAttribute("fontSize",m_font.pointSize());
 
     QString fontColor = colorToString(getColorValue(FontColor));
@@ -915,11 +1187,13 @@ QDomElement GraphicsBox::saveParamToXML(QDomDocument *xmlDoc) {
     elem.setAttribute("borderRight",right);
 
     elem.setAttribute("autoHeight",this->m_autoHeight);
+    elem.setAttribute("renderingMode",this->m_RenderingMode);
 
     return elem;
 }
 
-void GraphicsBox::setFieldType(FieldType value) {
+void GraphicsBox::setFieldType(FieldType value)
+{
     GraphicsHelperClass::setFieldType(value);
     switch(value) {
         case TextRich: {
@@ -947,17 +1221,61 @@ void GraphicsBox::setFieldType(FieldType value) {
             this->setWidth(300);
             this->setHeight(300);
 
-            m_chart = new Chart(0);
-            m_chart->setObjectName("chart");
-            m_chart->setVisible(false);
-            m_chart->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-            m_chart->resize(_width, _height);
-            //if (xmlDoc != 0)
-            //    m_chart->loadXML(xmlDoc->createElement("TContainerField"));
+            m_chart = SPtrQChart(new QChart());
+            m_chart->layout()->setContentsMargins(0, 0, 0, 0);
+            m_chart->setContentsMargins(0,0,0,0);
+            m_chart->setMargins(QMargins());
+            m_chart->setBackgroundRoundness(0);
+
+            //---------------------------------
+            auto set0 = new QBarSet("Jane");
+            auto set1 = new QBarSet("John");
+            auto set2 = new QBarSet("Axel");
+            auto set3 = new QBarSet("Mary");
+            auto set4 = new QBarSet("Samantha");
+
+            *set0 << 1 << 2 << 3 << 4 << 5 << 6;
+            *set1 << 5 << 0 << 0 << 4 << 0 << 7;
+            *set2 << 3 << 5 << 8 << 13 << 8 << 5;
+            *set3 << 5 << 6 << 7 << 3 << 4 << 5;
+            *set4 << 9 << 7 << 5 << 3 << 1 << 2;
+
+            auto series = new QStackedBarSeries();
+            series->setName("QStackedBarSeries");
+            series->append(set0);
+            series->append(set1);
+            series->append(set2);
+            series->append(set3);
+            series->append(set4);
+
+            m_chart->addSeries(series);
+            m_chart->setTitle("Simple stackedbarchart example");
+
+            QStringList categories;
+            categories << "Jan" << "Feb" << "Mar" << "Apr" << "May" << "Jun";
+
+            auto axis = new QBarCategoryAxis();
+            axis->append(categories);
+            m_chart->addAxis(axis, Qt::AlignBottom);
+            series->attachAxis(axis);
+            m_chart->legend()->setVisible(true);
+            m_chart->legend()->setAlignment(Qt::AlignBottom);
+
+            QBrush brush = m_chart->backgroundBrush();
+            brush.setColor(Qt::white);
+            m_chart->setBackgroundBrush(brush);
+            //---------------------------------
+
+            m_chartView = SPtrQChartView(new QChartView(m_chart.data()));
+            m_chartView->setRenderHint(QPainter::Antialiasing);
+            m_chartView->setVisible(false);
+            m_chartView->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+            m_chartView->resize(m_width, m_height);
+            m_chart->resize(m_width, m_height);
             break;
         }
         case Barcode: {
-            m_barcode = new BarCode(0);
+            m_barcode = SPtrBarCode(new BarCode(nullptr));
             this->setWidth(200);
             this->setHeight(100);
             break;
@@ -965,26 +1283,9 @@ void GraphicsBox::setFieldType(FieldType value) {
         case CrossTab: {
             this->setWidth(400);
             this->setHeight(300);
-            m_crossTab = new RptCrossTabObject();
+            m_crossTab = SPtrCrossTab(new RptCrossTabObject());
             m_crossTab->rect.setHeight(this->getHeight());
             m_crossTab->rect.setWidth(this->getWidth());
-            m_crossTab->addCol("C1");
-            m_crossTab->addCol("C2");
-            m_crossTab->addCol("C3");
-            m_crossTab->addRow("R1");
-            m_crossTab->addRow("R2");
-            m_crossTab->addRow("R3");
-            m_crossTab->setColHeaderVisible(true);
-            m_crossTab->setRowHeaderVisible(true);
-            m_crossTab->setColTotalVisible(true);
-            m_crossTab->setRowTotalVisible(true);
-            m_crossTab->initMatrix();
-            //Fill values into matrix
-            for (int r=0; r<m_crossTab->rowDataCount(); r++)
-                for (int c=0; c<m_crossTab->colDataCount(); c++)
-                    m_crossTab->setMatrixValue(QString::number(c),
-                                               QString::number(r),
-                                               QString("%1%2").arg(c).arg(r).toDouble());
             break;
         }
         default:
@@ -993,53 +1294,61 @@ void GraphicsBox::setFieldType(FieldType value) {
     graphicsItem->setZValue(11);
 }
 
-void GraphicsBox::setText(QString value) {
+void GraphicsBox::setText(QString value)
+{
     m_text = value;
 }
 
-QString GraphicsBox::getText() {
+QString GraphicsBox::getText()
+{
     return m_text;
 }
 
-void GraphicsBox::setBorderVisible(bool value) {
+void GraphicsBox::setBorderVisible(bool value)
+{
     m_borderIsVisible = value;
 }
 
-bool GraphicsBox::borderIsVisible() {
+bool GraphicsBox::borderIsVisible()
+{
     return m_borderIsVisible;
 }
 
-void GraphicsBox::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
+void GraphicsBox::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
+{
     m_menu->popup(event->screenPos());
 }
 
-void GraphicsBox::setMenu(QMenu *menu_) {
-    if (this->type() == ItemType::GBand) return;
+void GraphicsBox::setMenu(QMenu *menu)
+{
+    if (this->type() == ItemType::GBand)
+        return;
+
     QIcon icon;
-    QAction *actContEdit = new QAction(tr("Edit"),this);
+    auto actContEdit = new QAction(tr("Edit"),this);
     actContEdit->setObjectName("actContEdit");
     QObject::connect(actContEdit, SIGNAL(triggered()), this, SLOT(edit()));
 
-    QAction *actContDel = new QAction(tr("Delete"),this);
+    auto actContDel = new QAction(tr("Delete"),this);
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/delete.png")), QIcon::Normal, QIcon::On);
     actContDel->setObjectName("actContDel");
     actContDel->setIcon(icon);
-    QObject::connect(actContDel, SIGNAL(triggered()), this, SLOT(deleteLater()));
+    QObject::connect(actContDel, SIGNAL(triggered()), this, SIGNAL(itemRemoving()));
 
-    QAction *actContMoveForward = new QAction(tr("Move forward"),this);
+    auto actContMoveForward = new QAction(tr("Move forward"),this);
     actContMoveForward->setObjectName("actContMoveForward");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/moveForward.png")), QIcon::Normal, QIcon::On);
     actContMoveForward->setIcon(icon);
     QObject::connect(actContMoveForward, SIGNAL(triggered()), this, SLOT(moveForward()));
 
-    QAction *actContMoveBack = new QAction(tr("Move back"),this);
+    auto actContMoveBack = new QAction(tr("Move back"),this);
     actContMoveBack->setObjectName("actContMoveBack");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/moveBack.png")), QIcon::Normal, QIcon::On);
     actContMoveBack->setIcon(icon);
     QObject::connect(actContMoveBack, SIGNAL(triggered()), this, SLOT(moveBack()));
 
     m_menu->clear();
-    m_menu->insertActions(0,menu_->actions());
+    m_menu->insertActions(nullptr, menu->actions());
     m_menu->addAction(actContEdit);
     m_menu->addAction(actContDel);
     m_menu->addSeparator();
@@ -1047,66 +1356,73 @@ void GraphicsBox::setMenu(QMenu *menu_) {
     m_menu->addAction(actContMoveBack);
 }
 
-BarCode::BarcodeTypes GraphicsBox::getBarcodeType() {
+BarCode::BarcodeTypes GraphicsBox::getBarcodeType()
+{
     return m_barcode->getBarcodeType();
 }
 
-void GraphicsBox::setBarcodeType(BarCode::BarcodeTypes value) {
+void GraphicsBox::setBarcodeType(BarCode::BarcodeTypes value)
+{
     m_barcode->setBarcodeType(value);
     update();
 }
 
-BarCode::FrameTypes GraphicsBox::getBarcodeFrameType() {
+BarCode::FrameTypes GraphicsBox::getBarcodeFrameType()
+{
     return m_barcode->getFrameType();
 }
 
-void GraphicsBox::setBarcodeFrameType(BarCode::FrameTypes value) {
+void GraphicsBox::setBarcodeFrameType(BarCode::FrameTypes value)
+{
     m_barcode->setFrameType(value);
     update();
 }
 
-int GraphicsBox::getBarcodeHeight() {
+int GraphicsBox::getBarcodeHeight()
+{
     return m_barcode->getHeight();
 }
 
-void GraphicsBox::setBarcodeHeight(int value) {
+void GraphicsBox::setBarcodeHeight(int value)
+{
     m_barcode->setHeight(value);
     update();
 }
 
-void GraphicsBox::setImage(QPixmap p) {
-    m_pixmap = p;
+void GraphicsBox::setImage(QPixmap pixmap)
+{
+    m_pixmap = pixmap;
 }
 
-QPixmap GraphicsBox::getImage() {
+QPixmap GraphicsBox::getImage()
+{
     return m_pixmap;
 }
 
-QString GraphicsBox::getImgFormat() {
+QString GraphicsBox::getImgFormat()
+{
     return m_imgFormat;
 }
 
-void GraphicsBox::setImgFromat(QString value) {
+void GraphicsBox::setImgFromat(QString value)
+{
     m_imgFormat = value;
 }
 
-RptCrossTabObject *GraphicsBox::getCrossTab() {
+SPtrCrossTab GraphicsBox::getCrossTab()
+{
     return m_crossTab;
 }
 
-Chart *GraphicsBox::getChart() {
+SPtrQChart GraphicsBox::getChart()
+{
     return m_chart;
 }
 
-BarCode *GraphicsBox::getBarCode() {
+SPtrBarCode GraphicsBox::getBarCode()
+{
     return m_barcode;
 }
 
-GraphicsBox::~GraphicsBox() {
-    if (m_barcode != nullptr)
-        delete m_barcode;
-    if (m_crossTab != nullptr)
-        delete m_crossTab;
-    if (m_chart != nullptr)
-        delete m_chart;
-}
+GraphicsBox::~GraphicsBox()
+{}

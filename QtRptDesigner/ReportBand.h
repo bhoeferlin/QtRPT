@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ class ReportBand : public GraphicsBox
 {
     
 public:
-    BandType bandType;
-    int titleHeight;
-    explicit ReportBand(BandType type = ReportTitle);
+    static const int titleHeight = 16;
+
+    explicit ReportBand(BandType type, int num);
     int type() const Q_DECL_OVERRIDE { return ItemType::GBand; }
-    void setMenu(QMenu *menu_);
+    void setMenu(QMenu *menu);
     qreal scale;
     void setHeight(qreal value);
     QString getGroupingField();
@@ -47,13 +47,23 @@ public:
     void setShowInGroup(bool value);
     bool getStartNewPage();
     void setStartNewPage(bool value);
+    int getGroupLevel();
+    void setGroupLevel(int value);
+    void loadParamFromXML(QDomElement e) override;
+    QDomElement saveParamToXML(QSharedPointer<QDomDocument> xmlDoc) override;
+    QString getDSName();
+    void setDSName(QString value);
+    BandType bandType;
+    int bandNo;
 
 private:
     bool m_infocus;
     QString m_groupingField;
+    QString m_dsName;
     bool m_startNewNumeration;
     bool m_showInGroup;
     bool m_startNewPage;
+    int m_groupLevel;
 
 
 protected:

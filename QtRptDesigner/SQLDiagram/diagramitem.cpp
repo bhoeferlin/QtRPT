@@ -21,24 +21,28 @@
 #include "diagramitem.h"
 //#include "domutils.h"
 
-DiagramItem::DiagramItem(DiagramItem *parent) : QGraphicsItem(parent) {
-}
+DiagramItem::DiagramItem(DiagramItem *parent)
+: QGraphicsItem(parent)
+{}
 
-DiagramItem::~DiagramItem() {
-}
+DiagramItem::~DiagramItem()
+{}
 
-DiagramDocument *DiagramItem::document() const {
+DiagramDocument *DiagramItem::document() const
+{
 	return qobject_cast<DiagramDocument *>(scene());
 }
 
-void DiagramItem::loadFromXml(QDomElement element, DiagramDocument *) {
-    setId(element.attribute("id", QUuid().toString()));
+void DiagramItem::loadFromXml(QDomElement element, DiagramDocument *)
+{
+    setId(QUuid(element.attribute("id", QUuid().toString())));
     qreal x = element.attribute("x").toDouble();
     qreal y = element.attribute("y").toDouble();
     setPos(QPointF(x, y));
 }
 
-void DiagramItem::saveToXml(QDomElement element, QDomDocument doc) {
+void DiagramItem::saveToXml(QDomElement element, QDomDocument doc)
+{
     Q_UNUSED(doc);
     element.setAttribute("type", typeName());
     if (id() != QUuid()) {
@@ -48,11 +52,13 @@ void DiagramItem::saveToXml(QDomElement element, QDomDocument doc) {
     }
 }
 
-void DiagramItem::setId(QUuid id) {
+void DiagramItem::setId(QUuid id)
+{
     m_id = id;
 }
 
-void DiagramItem::createId() {
+void DiagramItem::createId()
+{
     m_id = QUuid::createUuid();
 }
 
@@ -87,7 +93,7 @@ DiagramItem *DiagramItem::fromMimeData(const QMimeData *mimeData) {
 		return 0;
 
 	DiagramItem *item = DiagramItemFactory::create(element.attribute("type"));
-	if (item == NULL)
+    if (item == nullptr)
 		return 0;
 
 	item->loadFromXml(element);

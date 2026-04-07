@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,24 +21,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef RPTPAGEOBJECT_H
-#define RPTPAGEOBJECT_H
+#pragma once
 
+#include <QObject>
 #include <qtrptnamespace.h>
 #include <RptBandObject.h>
 #include <RptFieldObject.h>
+#include <RptSql.h>
+#include <RptDsInline.h>
 
 using namespace QtRptName;
+
 
 class QtRPT;
 class RptBandObject;
 class RptFieldObject;
 
-class RptPageObject
+typedef QList<RptBandObject*> BandList;
+Q_DECLARE_METATYPE(BandList)
+
+class RptPageObject : public QObject
 {
+    Q_OBJECT
+    Q_PROPERTY(int pageNo MEMBER pageNo)
+    Q_PROPERTY(int orientation MEMBER orientation)
+    Q_PROPERTY(BandList bandList MEMBER bandList)
+    Q_PROPERTY(bool border MEMBER border)
+
     friend class QtRPT;
+
 public:
-    RptPageObject(QtRPT *qtrpt = 0);
+    RptPageObject(QtRPT *qtrpt = nullptr);
     ~RptPageObject();
     int pageNo;
     int orientation;
@@ -52,16 +65,37 @@ public:
     int borderWidth;
     QColor borderColor;
     QString borderStyle;
+    bool watermark;
+    float watermarkOpacity;
+    QPixmap watermarkPixmap;
+    RptDsAbstract *rptDsInline;
+    RptSql *rtpSql;
+    RptSqlConnection sqlConnection;
+
     void addBand(RptBandObject *band);
-    RptBandObject *getBand(BandType type);
-    RptFieldObject *findFieldObjectByName(QString name);
-    QList<RptBandObject*> bandList;
+    RptBandObject *getBand(BandType type, int No, int groupLevel = 0);
+    Q_INVOKABLE RptBandObject *getBand(QString name);
+    int bandsCountByType(BandType type);
+    Q_INVOKABLE RptFieldObject *findFieldObjectByName(QString name);
+    void initCrossTabProcessedRows();
+    int crossTabParts();
+
+    Q_INVOKABLE void setVisible(bool value);
+    bool isVisible();
+
+    quint16 totalPages();
+    void setTotalPages(quint16 value);
+    QList<RptFieldObject*> crossTabs();
+    BandList bandList;
+    int recordCount;
+    RptPageObject *clone();
 
 private:
 	QtRPT *m_qtrpt;
+    bool m_visible;
+    quint16 m_totalPages;
     void setProperty(QtRPT *qtrpt, QDomElement docElem);
-};
-Q_DECLARE_METATYPE(RptPageObject)
-QDebug operator<<(QDebug dbg, const RptPageObject &obj);
 
-#endif // RPTPAGEOBJECT_H
+};
+
+QDebug operator<<(QDebug dbg, const RptPageObject &obj);

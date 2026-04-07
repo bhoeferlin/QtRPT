@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,26 +21,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef QTRPTNAMESPACE_H
-#define QTRPTNAMESPACE_H
+#pragma once
+
 #include <QObject>
 #include <QMetaType>
+#include <QColor>
 
 namespace QtRptName {
-    enum BandType {
-        Undefined,
-        ReportTitle,
-        PageHeader,
-        DataGroupHeader,
-        MasterHeader,
-        MasterData,
-        MasterFooter,
-        DataGroupFooter,
-        ReportSummary,
-        PageFooter
+    enum BandType
+    {
+        Undefined = 0,
+        PageHeader = 1,
+        ReportTitle = 2,
+        DataGroupHeader = 4,//3,
+        MasterHeader = 3,//4,
+        MasterData = 5,
+        MasterFooter = 7,//6,
+        DataGroupFooter = 6,//7,
+        ReportSummary = 8,
+        PageFooter = 9
     };
 
-    enum FieldType {
+    enum FieldType
+    {
         Text,
         TextImage,
         TextRich,
@@ -57,7 +60,8 @@ namespace QtRptName {
         CrossTab
     };
 
-    enum BorderStyle {
+    enum BorderStyle
+    {
         Dashed,
         Dot_dash,
         Dot_dot_dash,
@@ -71,7 +75,18 @@ namespace QtRptName {
         BorderNone
     };
 
-    enum Command {
+    enum HiType
+    {
+        FntBold,
+        FntItalic,
+        FntUnderline,
+        FntStrikeout,
+        FntColor,
+        BgColor
+    };
+
+    enum Command
+    {
         None,
         Name,
         Bold,
@@ -101,27 +116,40 @@ namespace QtRptName {
         BackgroundColor,
         BorderColor,
         Printing,
+        GroupParam,
         StartNewNumeration,
         ShowInGroup,
         StartNewPage,
+        GroupLevel,
+        GroupFields,
         AutoHeight,
         ArrowStart,
         ArrowEnd,
         IgnoreRatioAspect,
         BarcodeType,
         BarcodeFrameType,
-        TextWrap
+        TextWrap,
+        TextRotate,
+        DSName,
+        RenderingMode,
+        PaddingX,
+        PaddingY
     };
 }
 
 Q_DECLARE_METATYPE(QtRptName::FieldType)
 
+struct GraphValue {
+    QString caption;  //for Pie, for Line - ignore
+    double valueX;    //for Line only
+    double valueY;
+};
 
+struct GraphData {
+    QList<GraphValue> valueList;
+    QColor color;
+    QString graphDS;
+    QString caption;  //for Pie - ignore
+};
 
-//Q_ENUMS(QtRptName::FieldType)
-//qRegisterMetaType<QtRptName::FieldType>( "FieldType" );
-//qRegisterMetaTypeStreamOperators()
-
-#endif // QTRPTNAMESPACE_H
-
-
+typedef QList<GraphData> GraphDataList;

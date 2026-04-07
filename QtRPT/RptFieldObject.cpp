@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,10 +22,7 @@ limitations under the License.
 */
 
 #include "RptFieldObject.h"
-
-#if _MSC_VER < 1800 
-#   define rint(x) floor(x + 0.5) /*Only works for positive numbers*/
-#endif
+#include "CommonClasses.h"
 
 /*!
  \class RptFieldObject
@@ -289,7 +286,6 @@ limitations under the License.
  \note For type Diagram only.
 */
 
-
 /*!
  \fn int RptFieldObject::recNo()
     \c Return a current record number.
@@ -304,8 +300,14 @@ limitations under the License.
  \fn RptFieldObject::RptFieldObject()
     Constructs a RptFieldObject object.
 */
-RptFieldObject::RptFieldObject() {
+RptFieldObject::RptFieldObject(QObject *parent)
+: QObject(parent)
+{
+    qRegisterMetaType<GraphDataList>("GraphDataList");
+
+    this->chart = nullptr;
     this->highlighting = "";
+    this->autoHeight = false;
     this->backgroundColor = Qt::white;
     this->m_backgroundColor = Qt::white;
     this->fontColor = Qt::black;
@@ -315,6 +317,7 @@ RptFieldObject::RptFieldObject() {
     font.setPointSize(12);
     this->font = font;
     this->printing = "1";
+    this->rotate = 0;
     this->borderWidth = 1;
     this->borderColor = Qt::black;
     this->borderBottom = Qt::black;
@@ -322,23 +325,37 @@ RptFieldObject::RptFieldObject() {
     this->borderLeft = Qt::black;
     this->borderTop = Qt::black;
     this->aligment = Qt::AlignVCenter | Qt::AlignLeft;
-    this->parentBand = 0;
+    this->parentBand = nullptr;
+    this->parentCrossTab = nullptr;
+    this->m_visible = true;
+    this->renderingMode = 0;
+    this->paddingX = 0;
+    this->paddingY = 0;
+
+    #if QT_VERSION >= 0x050800
+        this->chart = nullptr;
+    #endif
 }
 
 /*!
  \fn RptFieldObject::~RptFieldObject()
     Destructs a RptFieldObject object.
 */
-RptFieldObject::~RptFieldObject() {
+RptFieldObject::~RptFieldObject()
+{
     if (fieldType == CrossTab)
         delete crossTab;
+
+//    if (chart != nullptr)
+//        delete chart;
 }
 
 /*!
  \fn void RptFieldObject::setDefaultFontColor(QColor value)
     Sets default font color with \a value.
 */
-void RptFieldObject::setDefaultFontColor(QColor value) {
+void RptFieldObject::setDefaultFontColor(QColor value)
+{
     fontColor = value;
     m_fontColor = value;
 }
@@ -347,37 +364,49 @@ void RptFieldObject::setDefaultFontColor(QColor value) {
  \fn void RptFieldObject::setDefaultBackgroundColor(QColor value)
     Sets default background color with \a value.
 */
-void RptFieldObject::setDefaultBackgroundColor(QColor value) {
+void RptFieldObject::setDefaultBackgroundColor(QColor value)
+{
     backgroundColor = value;
     m_backgroundColor = value;
 }
 
-void RptFieldObject::setProperty(QtRPT *qtrpt, QDomElement e) {
+void RptFieldObject::setObjectName(const QString &objName)
+{
+    name = objName;
+    QObject::setObjectName(objName);
+}
+
+void RptFieldObject::setProperty(QtRPT *qtrpt, QDomElement e)
+{
     m_qtrpt = qtrpt;
     highlighting = e.attribute("highlighting","");
     printing = e.attribute("printing","1");
-    name = e.attribute("name");
-    value = e.attribute("value");
+    renderingMode = e.attribute("renderingMode","0").toInt();
+    this->setObjectName(e.attribute("name"));
+    value = e.attribute("value").replace("&Acirc","");
     rect.setX(e.attribute("left").toInt());
     rect.setY(e.attribute("top").toInt());
-    rect.setWidth((e.attribute("width").toInt()));
+    rect.setWidth(e.attribute("width").toInt());
     rect.setHeight(e.attribute("height").toInt());
     borderTop = colorFromString(e.attribute("borderTop"));
     borderBottom = colorFromString(e.attribute("borderBottom"));
-    borderLeft = colorFromString(e.attribute("borderLeft"));
+    borderLeft  = colorFromString(e.attribute("borderLeft"));
     borderRight = colorFromString(e.attribute("borderRight"));
     borderWidth = e.attribute("borderWidth","1").replace("px","").toInt();
     borderStyle = e.attribute("borderStyle","solid");
     borderColor = colorFromString(e.attribute("borderColor"));
 
+    rotate = e.attribute("rotate","0").toInt();
+
     aligment = QtRPT::getAligment(e);
     autoHeight = e.attribute("autoHeight","0").toInt();
 
-    QFont m_font(e.attribute("fontFamily"),e.attribute("fontSize").toInt());
+    QFont m_font(e.attribute("fontFamily"), e.attribute("fontSize").toInt());
     m_font.setBold(e.attribute("fontBold").toInt());
     m_font.setItalic(e.attribute("fontItalic").toInt());
     m_font.setUnderline(e.attribute("fontUnderline").toInt());
     m_font.setStrikeOut(e.attribute("fontStrikeout").toInt());
+
     font = m_font;
 
     backgroundColor = colorFromString(e.attribute("backgroundColor"));
@@ -390,6 +419,7 @@ void RptFieldObject::setProperty(QtRPT *qtrpt, QDomElement e) {
 
     fieldType = qtrpt->getFieldType(e);
     formatString = e.attribute("format","");
+    inputFormatString = e.attribute("input_format","");
 
     barcodeType = e.attribute("barcodeType","13").toInt();
     barcodeFrameType = e.attribute("barcodeFrameType","0").toInt();
@@ -398,14 +428,8 @@ void RptFieldObject::setProperty(QtRPT *qtrpt, QDomElement e) {
     picture = QByteArray::fromBase64(e.attribute("picture","text").toLatin1());
     ignoreAspectRatio = e.attribute("ignoreAspectRatio","1").toInt();
 
-    showGrid = e.attribute("showGrid","1").toInt();
-    showLegend = e.attribute("showLegend","1").toInt();
-    showCaption = e.attribute("showCaption","1").toInt();
-    showGraphCaption = e.attribute("showGraphCaption","1").toInt();
-    showPercent = e.attribute("showPercent","1").toInt();
-    caption = e.attribute("caption","Example");
-    autoFillData = e.attribute("autoFillData","0").toInt();
-
+    paddingX = e.attribute("paddingX").toInt();
+    paddingY = e.attribute("paddingY").toInt();
     lineStartX = e.attribute("lineStartX").toInt();
     lineEndX = e.attribute("lineEndX").toInt();
     lineStartY = e.attribute("lineStartY").toInt();
@@ -414,55 +438,362 @@ void RptFieldObject::setProperty(QtRPT *qtrpt, QDomElement e) {
     arrowEnd = e.attribute("arrowEnd","0").toInt();
 
     if (fieldType == Diagram) {
-        if (autoFillData == 1) {
-            QDomNode g = e.firstChild();
-            while(!g.isNull()) {
-                QDomElement ge = g.toElement();
+        #if QT_VERSION >= 0x050800
+            chart = new QChart();
 
-                GraphParam param;
-                param.color = colorFromString( ge.attribute("color") );
-                param.valueReal = qtrpt->sectionField(this->parentBand, ge.attribute("value"), false).toFloat();
-                param.formula = ge.attribute("value");
-                param.caption = ge.attribute("caption");
-                graphList.append(param);
+            chart->layout()->setContentsMargins(0, 0, 0, 0);
+            chart->setContentsMargins(0,0,0,0);
+            chart->setMargins(QMargins());
+            chart->setBackgroundRoundness(0);
 
-                g = g.nextSibling();
+            chart->setTitle(e.attribute("caption"));
+            chart->legend()->setVisible(e.attribute("showLegend", "1").toInt());
+            chart->setProperty("staticChart", e.attribute("staticChart", "1").toInt());
+
+            QFont fnt =  chart->titleFont();
+            fnt.fromString(e.attribute("titleFont", chart->titleFont().toString()));
+            chart->setTitleFont(fnt);
+
+            fnt =  chart->legend()->font();
+            fnt.fromString(e.attribute("legendFont", chart->legend()->font().toString()));
+            chart->legend()->setFont(fnt);
+
+            QColor color = colorFromString(e.attribute("colorLegend"));
+            QBrush brush = chart->legend()->labelBrush();
+            brush.setColor(color);
+            chart->legend()->setLabelBrush(brush);
+
+            color = colorFromString(e.attribute("colorBackground"));
+            brush = chart->backgroundBrush();
+            brush.setColor(color);
+            brush.setStyle(Qt::SolidPattern);
+            chart->setBackgroundBrush(brush);
+
+            color = colorFromString(e.attribute("colorTitle"));
+            brush = chart->titleBrush();
+            brush.setColor(color);
+            chart->setTitleBrush(brush);
+
+
+            Qt::Alignment alig;
+            if (e.attribute("legendAligment").toInt() == 0) alig = Qt::AlignTop;
+            if (e.attribute("legendAligment").toInt() == 1) alig = Qt::AlignBottom;
+            if (e.attribute("legendAligment").toInt() == 2) alig = Qt::AlignLeft;
+            if (e.attribute("legendAligment").toInt() == 3) alig = Qt::AlignRight;
+            chart->legend()->setAlignment(alig);
+
+
+            if (e.attribute("chartType").contains("SeriesTypeLine")) {
+                QDomNode c = e.firstChild();
+                while(!c.isNull()) {
+                    QDomElement graphElement = c.toElement();
+                    if (!graphElement.isNull()) {
+                        auto series = new QLineSeries();
+                        series->setName(graphElement.attribute("caption"));
+                        series->setColor(colorFromString(graphElement.attribute("color")));
+                        series->setProperty("graphDS", graphElement.attribute("graphDS"));
+
+                        QDomNode v = graphElement.firstChild();
+                        while(!v.isNull()) {
+                            QDomElement valueElement = v.toElement();
+                            series->append(valueElement.attribute("x").toDouble(),
+                                           valueElement.attribute("y").toDouble());
+
+                            v = v.nextSibling();
+                        }
+
+                        chart->addSeries(series);
+                    }
+
+                    c = c.nextSibling();
+                }
             }
-        }
+
+            if (e.attribute("chartType") == "SeriesTypeBar" ||
+                e.attribute("chartType") == "SeriesTypeStackedBar") {
+
+                QAbstractSeries *abstrSeries = nullptr;
+
+                if (e.attribute("chartType") == "SeriesTypeBar") {
+                    auto series = new QBarSeries();
+                    abstrSeries = series;
+                }
+                if (e.attribute("chartType") == "SeriesTypeStackedBar") {
+                    auto series = new QStackedBarSeries();
+                    abstrSeries = series;
+                }
+
+
+                QDomNode c = e.firstChild();
+                while(!c.isNull()) {
+                    QDomElement graphElement = c.toElement();
+                    if (!graphElement.isNull()) {
+                        auto barSet = new QBarSet(graphElement.attribute("caption"));
+                        barSet->setColor(colorFromString(graphElement.attribute("color")));
+                        barSet->setProperty("graphDS", graphElement.attribute("graphDS"));
+
+                        QDomNode v = graphElement.firstChild();
+                        while(!v.isNull()) {
+                            QDomElement valueElement = v.toElement();
+                            barSet->append(valueElement.attribute("val").toDouble());
+
+                            v = v.nextSibling();
+                        }
+
+
+
+                        if (abstrSeries->type() == QAbstractSeries::SeriesTypeStackedBar) {
+                            auto series = qobject_cast<QStackedBarSeries*>(abstrSeries);
+                            series->append(barSet);
+                        }
+                        if (abstrSeries->type() == QAbstractSeries::SeriesTypeBar) {
+                            auto series = qobject_cast<QBarSeries*>(abstrSeries);
+                            series->append(barSet);
+                        }
+                    }
+
+                    c = c.nextSibling();
+                }
+
+                chart->addSeries(abstrSeries);
+                chart->createDefaultAxes();
+                chart->update();
+            }
+
+            if (e.attribute("chartType") == "SeriesTypePie") {
+                auto series = new QPieSeries();
+                series->setName(e.attribute("caption"));
+                series->setHoleSize(e.attribute("holeSize", "0.00").toDouble());
+                series->setProperty("graphDS", e.attribute("graphDS"));
+
+                chart->addSeries(series);
+
+                QDomNode c = e.firstChild();
+                while(!c.isNull()) {
+                    QDomElement graphElement = c.toElement();
+                    if (!graphElement.isNull()) {
+                        auto slice = new QPieSlice(graphElement.attribute("caption"),
+                                                   graphElement.attribute("value").toDouble(), series);
+                        slice->setExploded(graphElement.attribute("sliceExploaded").toInt());
+                        slice->setLabelVisible(graphElement.attribute("labelVisible").toInt());
+
+                        series->append(slice);
+
+                        QColor color = colorFromString(graphElement.attribute("color"));
+                        slice->setColor(color);
+                    }
+                    c = c.nextSibling();
+                }
+            }
+
+            chart->createDefaultAxes();
+        #endif
     }
+
     if (fieldType == CrossTab) {
         crossTab = new RptCrossTabObject();
         crossTab->rect = this->rect;
         crossTab->parentField = this;
-
-        QDomNode g = e.firstChild();
-        while(!g.isNull()) {
-            QDomElement ge = g.toElement();
-            if (!ge.isNull() && ge.tagName() == "row") {
-                crossTab->addRow(ge.attribute("caption"));
-            }
-            if (!ge.isNull() && ge.tagName() == "col") {
-                crossTab->addCol(ge.attribute("caption"));
-            }
-
-            g = g.nextSibling();
-        }
-
-        crossTab->setColHeaderVisible(e.attribute("crossTabColHeaderVisible").toInt());
-        crossTab->setRowHeaderVisible(e.attribute("crossTabRowHeaderVisible").toInt());
-        crossTab->setColTotalVisible(e.attribute("crossTabColTotalVisible").toInt());
-        crossTab->setRowTotalVisible(e.attribute("crossTabRowTotalVisible").toInt());
-
-        crossTab->initMatrix();
-        //Fill values into matrix
-		for (int siRow=1; siRow <= crossTab->rowCount()-1; siRow++)
-            for (int siCol=1; siCol <= crossTab->colCount()-1; siCol++)
-                crossTab->setMatrixValue(QString("C%1").arg(siCol),
-					QString("R%1").arg(siRow), QString("%1%2").arg(siCol).arg(siRow).toDouble());
+        crossTab->loadParamFromXML(e);
     }
 }
 
-void RptFieldObject::updateHighlightingParam() {
+void RptFieldObject::setWidth(int value)
+{
+    rect.setWidth(value);
+}
+
+int RptFieldObject::getWidth()
+{
+    return rect.width();
+}
+
+void RptFieldObject::setHeight(int value)
+{
+    rect.setHeight(value);
+}
+
+int RptFieldObject::getHeight()
+{
+    return rect.height();
+}
+
+void RptFieldObject::setTop(int value)
+{
+    rect.setY(value);
+}
+
+int RptFieldObject::getTop()
+{
+    return rect.y();
+}
+
+void RptFieldObject::setLeft(int value)
+{
+    rect.setX(value);
+}
+
+int RptFieldObject::getLeft()
+{
+    return rect.x();
+}
+
+void RptFieldObject::setChartData(GraphDataList dataList)
+{
+    Q_UNUSED(dataList);
+
+    //    struct GraphValue {
+    //        QString caption;  //for Pie, for Line - ignore
+    //        double valueX;    //for Line only
+    //        double valueY;
+    //    };
+
+    //    struct GraphData {
+    //        QList<GraphValue> valueList;
+    //        QString graphDS;
+    //        QString caption;
+    //    };
+
+    #if QT_VERSION >= 0x050800
+        if (chart->property("staticChart").toInt() == true)
+            return;
+
+        auto seriesType = chart->series().at(0)->type();
+        if (seriesType == QAbstractSeries::SeriesTypeBar ||
+            seriesType == QAbstractSeries::SeriesTypeStackedBar) {
+
+            if (seriesType == QAbstractSeries::SeriesTypeStackedBar) {
+                auto series = qobject_cast<QStackedBarSeries*>(chart->series().at(0));
+                series->clear();
+            } else if (seriesType == QAbstractSeries::SeriesTypeBar) {
+                auto series = qobject_cast<QBarSeries*>(chart->series().at(0));
+                series->clear();
+            }
+        }
+
+        for (int i = 0; i < dataList.size(); i++) {
+            if (seriesType == QAbstractSeries::SeriesTypeLine) {
+                auto series = qobject_cast<QLineSeries*>(chart->series()[i]);
+                series->clear();
+
+                for (const auto &value : dataList.at(i).valueList)
+                    series->append(value.valueX, value.valueY);
+            }
+
+            if (seriesType == QAbstractSeries::SeriesTypeBar ||
+                seriesType == QAbstractSeries::SeriesTypeStackedBar) {
+
+                auto barSet = new QBarSet(dataList.at(i).caption);
+                barSet->setColor(dataList.at(i).color);
+                for (const auto &value : dataList.at(i).valueList)
+                    barSet->append(value.valueY);
+
+                if (seriesType == QAbstractSeries::SeriesTypeStackedBar) {
+                    auto series = qobject_cast<QStackedBarSeries*>(chart->series().at(0));
+                    series->append(barSet);
+                } else if (seriesType == QAbstractSeries::SeriesTypeBar) {
+                    auto series = qobject_cast<QBarSeries*>(chart->series().at(0));
+                    series->append(barSet);
+                }
+            }
+
+            if (seriesType == QAbstractSeries::SeriesTypePie) {
+                auto series = qobject_cast<QPieSeries*>(chart->series().at(0));
+                series->clear();
+
+                for (const auto &value : dataList.at(i).valueList) {
+                    auto slice = new QPieSlice(value.caption, value.valueY, series);
+                    series->append(slice);
+                }
+            }
+        }
+    #endif
+}
+
+GraphDataList RptFieldObject::getChartData()
+{
+    GraphDataList dataList;
+
+    #if QT_VERSION >= 0x050800
+        if (chart && chart->series().size() > 0) {
+            if (chart->series().at(0)->type() == QAbstractSeries::SeriesTypeLine) {
+                for (auto &absSeries : chart->series()) {
+                    auto series = qobject_cast<QLineSeries*>(absSeries);
+
+                    GraphData graphData;
+                    graphData.color   = series->color();
+                    graphData.graphDS = series->property("graphDS").toString();
+                    graphData.caption = series->name();
+
+                    QList<GraphValue> valueList;
+                    for (const auto &point : series->points()) {
+                        GraphValue value;
+                        value.valueX = point.x();
+                        value.valueY = point.y();
+                        valueList << value;
+                    }
+                    graphData.valueList = valueList;
+
+                    dataList << graphData;
+                }
+            }
+            if (chart->series().at(0)->type() == QAbstractSeries::SeriesTypeBar ||
+                chart->series().at(0)->type() == QAbstractSeries::SeriesTypeStackedBar) {
+
+                QList<QBarSet*> barSets;
+
+                if (chart->series().at(0)->type() == QAbstractSeries::SeriesTypeBar) {
+                    auto series = qobject_cast<QBarSeries*>(chart->series().at(0));
+                    barSets = series->barSets();
+                }
+                if (chart->series().at(0)->type() == QAbstractSeries::SeriesTypeStackedBar) {
+                    auto series = qobject_cast<QStackedBarSeries*>(chart->series().at(0));
+                    barSets = series->barSets();
+                }
+
+                for (const auto &barSet : barSets) {
+                    GraphData graphData;
+                    graphData.color   = barSet->color();
+                    graphData.graphDS = barSet->property("graphDS").toString();
+                    graphData.caption = barSet->label();
+
+                    QList<GraphValue> valueList;
+                    for (int row = 0; row < barSet->count(); row++) {
+                        GraphValue value;
+                        value.valueY = barSet->at(row);
+                        valueList << value;
+                    }
+                    graphData.valueList = valueList;
+
+                    dataList << graphData;
+                }
+            }
+            if (chart->series().at(0)->type() == QAbstractSeries::SeriesTypePie) {
+                auto series = qobject_cast<QPieSeries*>(chart->series().at(0));
+
+                GraphData graphData;
+                graphData.graphDS = series->property("graphDS").toString();
+                graphData.caption = "";
+
+                QList<GraphValue> valueList;
+                for (auto &slice : series->slices()) {
+                    GraphValue value;
+                    value.caption = slice->label();
+                    value.valueY = slice->value();
+                    valueList << value;
+                }
+                graphData.valueList = valueList;
+
+                dataList << graphData;
+            }
+        }
+    #endif
+
+    return dataList;
+}
+
+void RptFieldObject::updateHighlightingParam()
+{
     QFont m_font(font);
     m_font.setBold(m_qtrpt->processHighligthing(this, FntBold).toInt());
     m_font.setItalic(m_qtrpt->processHighligthing(this, FntItalic).toInt());
@@ -474,12 +805,75 @@ void RptFieldObject::updateHighlightingParam() {
     fontColor = colorFromString(m_qtrpt->processHighligthing(this, FntColor).toString());
 }
 
-void RptFieldObject::updateDiagramValue() {
-    if (autoFillData == 1) {
-        for (int h=0; h<graphList.size(); h++) {
-            graphList[h].valueReal = m_qtrpt->sectionField(this->parentBand, graphList.at(h).formula, false).toFloat();
-        }
-    }
+/*!
+ \fn RptFieldObject *RptFieldObject::clone()
+    Clone the current field and return \c RptFieldObject of the new field object
+*/
+RptFieldObject *RptFieldObject::clone()
+{
+    auto field = new RptFieldObject(this->parent());
+    field->setObjectName(this->objectName());
+    field->value = value;
+    field->rect = rect;
+    field->borderTop = borderTop;
+    field->borderBottom = borderBottom;
+    field->borderLeft = borderLeft;
+    field->borderRight = borderRight;
+    field->borderColor = borderColor;
+    field->fontColor = fontColor;
+    field->backgroundColor = backgroundColor;
+    field->autoHeight = autoHeight;
+
+
+    field->borderWidth = borderWidth;
+    field->autoHeight = autoHeight;
+    field->textWrap = textWrap;
+    field->rotate = rotate;
+
+    field->aligment = aligment;
+    field->borderStyle = borderStyle;
+    field->font = font;
+    field->fieldType = fieldType;
+    field->formatString = formatString;
+    field->inputFormatString = inputFormatString;
+    field->highlighting = highlighting;
+    field->imgFormat = imgFormat;
+    field->printing = printing;
+    field->barcodeType = barcodeType;
+    field->barcodeFrameType = barcodeFrameType;
+    field->barcodeHeight = barcodeHeight;
+    field->ignoreAspectRatio = ignoreAspectRatio;
+    field->picture = picture;
+    field->parentBand = parentBand;
+    //field->*parentCrossTab = parentCrossTab;
+
+    field->lineStartX = lineStartX;
+    field->lineEndX = lineEndX;
+    field->lineStartY = lineStartY;
+    field->lineEndY = lineEndY;
+    field->arrowStart = arrowStart;
+    field->arrowEnd = arrowEnd;
+
+    field->m_fontColor = m_fontColor;
+    field->m_backgroundColor = m_backgroundColor;
+    field->m_recNo = m_recNo;
+    field->m_reportPage = m_reportPage;
+    field->m_top = m_top;
+    field->paddingX = paddingX;
+    field->paddingY = paddingY;
+    field->m_qtrpt = m_qtrpt;
+
+
+    return field;
+}
+
+/*!
+ \fn RptFieldObject::isCrossTabChild()
+    Return true if the field is a part of CrossTabObject.
+*/
+bool RptFieldObject::isCrossTabChild()
+{
+    return this->parentCrossTab != nullptr;
 }
 
 /*!
@@ -488,7 +882,8 @@ void RptFieldObject::updateDiagramValue() {
 
     \sa rect
 */
-void RptFieldObject::setTop(int top) {
+void RptFieldObject::setHTMLTop(int top)
+{
     m_top = top;
 }
 
@@ -496,7 +891,8 @@ void RptFieldObject::setTop(int top) {
  \fn QString RptFieldObject::getHTMLStyle()
     Return HTML representation of the field.
 */
-QString RptFieldObject::getHTMLStyle() {
+QString RptFieldObject::getHTMLStyle()
+{
     QString style;
 
     QString alig;
@@ -505,9 +901,9 @@ QString RptFieldObject::getHTMLStyle() {
     if (this->aligment &Qt::AlignHCenter) alig = "center";
     if (this->aligment &Qt::AlignJustify) alig = "justify";
 
-    if (this->autoHeight == 1) {
+    if (this->autoHeight == 1)
         this->rect.setHeight(parentBand->realHeight);
-    }
+
     if (fieldType == Text) {
         style = "style='color:"+this->fontColor.name()+";"+
                 "background:"+this->backgroundColor.name()+";"+
@@ -527,14 +923,14 @@ QString RptFieldObject::getHTMLStyle() {
             style += "font-style: italic;";
         style += "'";
     }
+
     if (fieldType == TextImage || fieldType == Image || fieldType == DatabaseImage) {
         double dblAspectRatio = 0;
         int nHeight = this->rect.height();
         int nWidth = this->rect.height();
 
-        if (this->rect.height()) {
+        if (this->rect.height())
             dblAspectRatio = (double)this->rect.width() / (double)this->rect.height();
-        }
 
         if (dblAspectRatio) {
             nWidth = ((int)rint(nHeight * dblAspectRatio)) & -3;
@@ -561,11 +957,24 @@ QString RptFieldObject::getHTMLStyle() {
     return style;
 }
 
-QDebug operator<<(QDebug dbg, const RptFieldObject &obj) {
-    dbg << obj.name;
-    return dbg;
+/*!
+ \fn bool RptFieldObject::isVisible()
+    Return mark that this page is visible (printable)
+
+    \sa setVisible
+*/
+bool RptFieldObject::isVisible()
+{
+    return m_visible;
 }
 
-QDebug operator<<(QDebug dbg, const RptFieldObject *obj) {
-    return dbg << (*obj).name;
+/*!
+ \fn void RptFieldObject::setVisible(bool value)
+    Set mark that this page is visible (printable)
+
+    \sa isVisible
+*/
+void RptFieldObject::setVisible(bool value)
+{
+    m_visible = value;
 }

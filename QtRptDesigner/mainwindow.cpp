@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,164 +21,190 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "selectcolor.h"
+#include "XYZ_ColorSelector.h"
 #include "FldPropertyDlg.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "aboutDlg.h"
+#include "SettingDlg.h"
 
-EditorDelegate::EditorDelegate(QObject *parent) : QItemDelegate(parent) {
-    QObject::connect(this, SIGNAL(closeEditor(QWidget *, QAbstractItemDelegate::EndEditHint)),
-                     this, SLOT(editorClose_(QWidget *, QAbstractItemDelegate::EndEditHint)));
+EditorDelegate::EditorDelegate(QObject *parent)
+    : QStyledItemDelegate (parent)
+{
+    QObject::connect(this, SIGNAL(closeEditor(QWidget*,QAbstractItemDelegate::EndEditHint)),
+                     this, SLOT(editorClose_(QWidget*,QAbstractItemDelegate::EndEditHint)));
 }
 
-void EditorDelegate::editorClose_(QWidget *editor, QAbstractItemDelegate::EndEditHint hint) {
+void EditorDelegate::editorClose_(QWidget *editor, QAbstractItemDelegate::EndEditHint hint)
+{
     Q_UNUSED(editor);
     Q_UNUSED(hint);
+
     emit editorClose(this);
 }
 
 QWidget* EditorDelegate::createEditor(QWidget *parent,
                                       const QStyleOptionViewItem &option,
-                                      const QModelIndex &index) const {
+                                      const QModelIndex &index) const
+{
     if (index.column() == 1) {
         int command = index.model()->data(index, Qt::UserRole).toInt();
         switch(command) {
+            case Left:
+            case Top:
+            case Width:
+            case Height:
+            case FontSize:
+            case Length:
+            case PaddingX:
+            case PaddingY:
+            case FrameWidth: {
+                auto editor = new QSpinBox(parent);
+                editor->setRange(0, 999999);
+                connect(editor, SIGNAL(editingFinished()), this, SLOT(commitAndCloseEditor()));
+                return editor;
+            }
             case FontName: {
-                QFontComboBox *editor = new QFontComboBox(parent);
+                auto editor = new QFontComboBox(parent);
                 connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
                 return editor;
-                break;
+            }
+            case TextRotate: {
+                auto editor = new QComboBox(parent);
+                editor->addItem(tr("0 Degres"), 0);
+                editor->addItem(tr("90 Degres"), 1);
+                editor->addItem(tr("180 Degres"), 2);
+                editor->addItem(tr("270 Degres"), 3);
+                connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
+                return editor;
             }
             case AligmentH: {
-                QComboBox *editor = new QComboBox(parent);
+                auto editor = new QComboBox(parent);
                 editor->addItem(tr("Left"),Qt::AlignLeft);
                 editor->addItem(tr("Center"),Qt::AlignHCenter);
                 editor->addItem(tr("Right"),Qt::AlignRight);
                 editor->addItem(tr("Justify"),Qt::AlignJustify);
                 connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
                 return editor;
-                break;
             }
             case AligmentV: {
-                QComboBox *editor = new QComboBox(parent);
+                auto editor = new QComboBox(parent);
                 editor->addItem(tr("Top"),Qt::AlignTop);
                 editor->addItem(tr("Center"),Qt::AlignVCenter);
                 editor->addItem(tr("Bottom"),Qt::AlignBottom);
                 connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
                 return editor;
-                break;
             }
             case BarcodeType: {
-                QComboBox *editor = new QComboBox(parent);
-                BarCode::BarcodeTypePairList list = BarCode::getTypeList();
-                for (int i=0; i < list.size(); i++) {
-                    editor->addItem(list.at(i).second,list.at(i).first);
-                }
+                auto editor = new QComboBox(parent);
+                for (const auto &pair : BarCode::getTypeList())
+                    editor->addItem(pair.second, pair.first);
                 connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
                 return editor;
-                break;
             }
             case BarcodeFrameType: {
-                QComboBox *editor = new QComboBox(parent);
-                BarCode::FrameTypePairList list = BarCode::getFrameTypeList();
-                for (int i=0; i < list.size(); i++) {
-                    editor->addItem(list.at(i).second,list.at(i).first);
-                }
+                auto editor = new QComboBox(parent);
+                for (const auto &pair : BarCode::getFrameTypeList())
+                    editor->addItem(pair.second, pair.first);
                 connect(editor, SIGNAL(activated(int)), this, SLOT(commitAndCloseEditor()));
                 return editor;
-                break;
             }
             case BorderColor:
             case FontColor:
             case BackgroundColor: {
-                SelectColor *editor = new SelectColor(parent);
+                auto editor = new XYZ_ColorSelector(parent);
                 QMargins margins(1,1,1,1);
                 editor->setMargins(margins);
                 QObject::connect(editor->button, SIGNAL(clicked()), this, SIGNAL(btnClicked()));
                 return editor;
-                break;
             }
-            default: return QItemDelegate::createEditor(parent, option, index);
+            default: return QStyledItemDelegate::createEditor(parent, option, index);
         }
     }
-    return 0;
+
+    return nullptr;
 }
 
-void EditorDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const {
+void EditorDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+{
     if (index.column() == 1) {
         int command = index.model()->data(index, Qt::UserRole).toInt();
         switch (command) {
             case BarcodeType:
             case BarcodeFrameType:
+            case TextRotate:
             case AligmentH:
             case AligmentV: {
-                QString value = index.model()->data(index, Qt::EditRole).toString();
-                QComboBox *ed = qobject_cast<QComboBox*>(editor);
+                auto value = index.model()->data(index, Qt::EditRole).toString();
+                auto ed = qobject_cast<QComboBox*>(editor);
                 ed->setCurrentIndex(ed->findText(value));
                 break;
             }
             case FontName: {
-                QString value = index.model()->data(index, Qt::EditRole).toString();
-                QFontComboBox *ed = qobject_cast<QFontComboBox*>(editor);
+                auto value = index.model()->data(index, Qt::EditRole).toString();
+                auto ed = qobject_cast<QFontComboBox*>(editor);
                 ed->setCurrentFont(QFont(value));
                 break;
             }
             case BorderColor:
             case FontColor:
             case BackgroundColor: {
-                QString value = index.model()->data(index, Qt::EditRole).toString();
-                SelectColor *ed = qobject_cast<SelectColor*>(editor);
+                auto value = index.model()->data(index, Qt::EditRole).toString();
+                auto ed = qobject_cast<XYZ_ColorSelector*>(editor);
                 ed->setBackGroundColor(value);
                 break;
             }
-            default: QItemDelegate::setEditorData(editor,index);
+            default: QStyledItemDelegate::setEditorData(editor,index);
         }
     } else return;
 }
 
-void EditorDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex& index) const {
+void EditorDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex& index) const
+{
     if (index.column() == 1) {
         int command = index.model()->data(index, Qt::UserRole).toInt();
         switch (command) {
             case BarcodeFrameType:
             case BarcodeType: {
-                QComboBox *ed = static_cast<QComboBox*>(editor);
+                auto ed = qobject_cast<QComboBox*>(editor);
                 model->setData(index, ed->itemData(ed->currentIndex()));
                 break;
             }
+            case TextRotate:
             case AligmentH:
             case AligmentV: {
-                QComboBox *ed = static_cast<QComboBox*>(editor);
+                auto ed = qobject_cast<QComboBox*>(editor);
                 model->setData(index, ed->currentIndex());
                 break;
             }
             case FontName: {
-                QFontComboBox *ed = static_cast<QFontComboBox*>(editor);
+                auto ed = qobject_cast<QFontComboBox*>(editor);
                 model->setData(index, ed->currentFont().family());
                 break;
             }
             case FontSize: {
-                QItemDelegate::setModelData(editor,model,index);
+                QStyledItemDelegate::setModelData(editor,model,index);
                 break;
             }
             case BorderColor:
             case FontColor:
             case BackgroundColor: {
-                SelectColor *ed = qobject_cast<SelectColor*>(editor);
+                auto ed = qobject_cast<XYZ_ColorSelector*>(editor);
                 model->setData(index, ed->getBackGroundColor(), Qt::EditRole);
                 QBrush brush(Qt::white);
                 model->setData(index, brush, Qt::ForegroundRole);
                 break;
             }
-            default: QItemDelegate::setModelData(editor,model,index);
+            default: QStyledItemDelegate::setModelData(editor,model,index);
         }
     } return;
 }
 
-void EditorDelegate::paint ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const {
+void EditorDelegate::paint ( QPainter *painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const
+{
     if (index.column() == 1) {
         if (option.state & QStyle::State_Active) {
-            QItemDelegate::paint(painter,option,index);
+            QStyledItemDelegate::paint(painter,option,index);
         } else {
             int command = index.model()->data(index, Qt::UserRole).toInt();
             switch (command) {
@@ -195,24 +221,53 @@ void EditorDelegate::paint ( QPainter * painter, const QStyleOptionViewItem & op
                     break;
                 }
                 default:
-                    QItemDelegate::paint(painter,option,index);
+                    QStyledItemDelegate::paint(painter,option,index);
             }
         }
-    } else
-        QItemDelegate::paint(painter,option,index);
+    }
+    else
+        QStyledItemDelegate::paint(painter,option,index);
 }
 
-void EditorDelegate::commitAndCloseEditor() {
-    QWidget *editor = qobject_cast<QWidget*>(sender());
+void EditorDelegate::commitAndCloseEditor()
+{
+    auto editor = qobject_cast<QWidget*>(sender());
     emit commitData(editor);
     emit closeEditor(editor);
 }
 
-MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainWindow) {    
-    ui->setupUi(this);    
+
+MainWindow* MainWindow::mw;
+
+MainWindow::MainWindow(QStringList args, QWidget *parent)
+    : QMainWindow(parent), ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    MainWindow::mw = this;
+
+    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
+
+    dontSelect = false;
+    m_args = args;
+
+    this->setProperty("AllowStart", true);
+
+    auto spacerWidget = new QWidget(this);
+    spacerWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    spacerWidget->setVisible(true);
+
+    auto lblLogo = new QLabel("", this);
+    lblLogo->setObjectName("lblLogo");
+
+    ui->mainToolBar->addWidget(spacerWidget);
+    ui->mainToolBar->addWidget(lblLogo);
+
     m_status1 = new QLabel("Left", this);
     m_status1->setText(QString("X: %1 Y: %2").arg(0).arg(0));
-    m_status1->setFixedWidth(100);
+    m_status1->setFixedWidth(150);
     m_status1->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     m_status2 = new QLabel("Middle", this);
     m_status2->setFrameStyle(QFrame::Panel | QFrame::Sunken);
@@ -221,22 +276,29 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     this->statusBar()->addPermanentWidget(m_status1, 0);
     this->statusBar()->addPermanentWidget(m_status2, 1);
     this->statusBar()->addPermanentWidget(m_status3, 2);
-    this->showMaximized();
+    this->setWindowState(this->windowState() ^ Qt::WindowMaximized);
+
 
     ui->treeParams->setColumnWidth(0,150);
     ui->treeParams->setColumnWidth(1,70);
     ui->treeParams->setFocusPolicy(Qt::NoFocus);
     ui->treeWidget->setFocusPolicy(Qt::NoFocus);
 
-    EditorDelegate *d = new EditorDelegate(ui->treeParams);
-    QObject::connect(d, SIGNAL(editorClose(QItemDelegate *)), this,  SLOT(closeEditor()));
+    QObject::connect(ui->treeParams, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+                     this, SLOT(currentParamChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
+
+    auto d = new EditorDelegate(ui->treeParams);
+    QObject::connect(d, SIGNAL(editorClose(QStyledItemDelegate*)), this,  SLOT(closeEditor()));
     QObject::connect(d, SIGNAL(btnClicked()), this, SLOT(chooseColor()));
     ui->treeParams->setItemDelegate(d);
 
     cbFontName = new QFontComboBox(ui->toolBar);
+    cbFontName->setObjectName("cbFontName");
     cbFontName->setEditable(true);
     cbFontName->setToolTip(tr("Font name"));
+
     cbFontSize = new QComboBox( ui->toolBar );
+    cbFontSize->setObjectName("cbFontSize");
     cbFontSize->setEditable(true);
     cbFontSize->setToolTip(tr("Font size"));
     cbFontSize->addItem("6");
@@ -260,6 +322,9 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     ui->toolBar->insertWidget(ui->actionBold,cbFontName);
     ui->toolBar->insertWidget(ui->actionBold,cbFontSize);
 
+    cbFontSize->setCurrentIndex(cbFontSize->findText(settings.value("FontSize", 8).toString()));
+    cbFontName->setCurrentIndex(cbFontName->findText(settings.value("FontName", "MS Shell Dlg 2").toString()));
+
     cbZoom = new QComboBox(ui->mainToolBar);
     cbZoom->setEditable(true);
     cbZoom->setFixedWidth(70);
@@ -273,6 +338,7 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     cbZoom->addItem("200%");
     cbZoom->addItem("300%");
     cbZoom->setCurrentIndex(2);
+
     ui->mainToolBar->insertWidget(ui->actFieldLeft,cbZoom);
     ui->mainToolBar->insertSeparator(ui->actFieldLeft);
 
@@ -283,16 +349,23 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     cbFrameWidth->addItem("3");
     cbFrameWidth->addItem("4");
     cbFrameWidth->addItem("5");
+    cbFrameWidth->addItem("6");
+    cbFrameWidth->addItem("7");
+    cbFrameWidth->addItem("8");
+    cbFrameWidth->addItem("9");
+    cbFrameWidth->addItem("10");
     ui->toolBar->addWidget(cbFrameWidth);
+
     QObject::connect(cbFrameWidth, SIGNAL(activated(int)), this, SLOT(changeFrameWidth()));
     QObject::connect(cbFontName, SIGNAL(activated(int)), this, SLOT(changeTextFont()));
     QObject::connect(cbFontSize, SIGNAL(activated(int)), this, SLOT(changeTextFont()));
     QObject::connect(cbZoom, SIGNAL(activated(int)), this, SLOT(changeZoom()));
 
     listFrameStyle = new QListWidget(this);
+    listFrameStyle->hide();
     listFrameStyle->setFixedHeight(116);
     listFrameStyle->setIconSize(QSize(85, 16));
-    QObject::connect(listFrameStyle, SIGNAL(itemClicked(QListWidgetItem *)), this, SLOT(setFrameStyle(QListWidgetItem *)));
+    QObject::connect(listFrameStyle, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(setFrameStyle(QListWidgetItem*)));
 
     for (int i=1; i < 7; i++) {
         auto item = new QListWidgetItem(listFrameStyle);
@@ -311,26 +384,24 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     rootItem->setText(0,tr("Report"));
     rootItem->setExpanded(true);
 
-    QList<int> lst;
-    lst << 15 << 300;
-    ui->splitter->setSizes(lst);
+
 
     cloneContList = new QList<QGraphicsItem*>();
-    for(auto widget : ui->toolBar->findChildren<QWidget*>())
+    for (auto &widget : ui->toolBar->findChildren<QWidget*>())
         widget->installEventFilter(this);
 
-    QActionGroup *alignmentHGroup = new QActionGroup(this);
+    auto alignmentHGroup = new QActionGroup(this);
     alignmentHGroup->addAction(ui->actAlignLeft);
     alignmentHGroup->addAction(ui->actAlignRight);
     alignmentHGroup->addAction(ui->actAlignJustify);
     alignmentHGroup->addAction(ui->actAlignCenter);
 
-    QActionGroup *alignmentVGroup = new QActionGroup(this);
+    auto alignmentVGroup = new QActionGroup(this);
     alignmentVGroup->addAction(ui->actAlignTop);
     alignmentVGroup->addAction(ui->actAlignBottom);
     alignmentVGroup->addAction(ui->actAlignVCenter);
 
-    QActionGroup *addGroup = new QActionGroup(this);
+    auto addGroup = new QActionGroup(this);
     addGroup->addAction(ui->actionInsert_band);
     addGroup->addAction(ui->actSelect_tool);
     addGroup->addAction(ui->actAddField);
@@ -343,7 +414,7 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
 
     ui->actSelect_tool->setChecked(true);
 
-    for (int i = 0; i < MaxRecentFiles; ++i) {
+    for (quint16 i = 0; i < MaxRecentFiles; ++i) {
         recentFileActs[i] = new QAction(this);
         recentFileActs[i]->setVisible(false);
         ui->menuFile->insertAction(ui->actionExit,recentFileActs[i]);
@@ -357,12 +428,13 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
 
     QObject::connect(ui->actUndo, SIGNAL(triggered()), this, SLOT(undo()));
     QObject::connect(ui->actRedo, SIGNAL(triggered()), this, SLOT(redo()));
-    QObject::connect(ui->actAddBarcode, SIGNAL(triggered()), this, SLOT(addBarcode()));
-    QObject::connect(ui->actAddField, SIGNAL(triggered()), this, SLOT(addFieldText()));
-    QObject::connect(ui->actAddPicture, SIGNAL(triggered()), this, SLOT(AddPicture()));
-    QObject::connect(ui->actAddRichText, SIGNAL(triggered()), this, SLOT(addFieldTextRich()));
-    QObject::connect(ui->actAddDiagram, SIGNAL(triggered()), this, SLOT(addDiagram()));
-    QObject::connect(ui->actAddCrossTab, SIGNAL(triggered()), this, SLOT(addFieldCrossTab()));
+    QObject::connect(ui->actSelect_tool, SIGNAL(triggered()), this, SLOT(setSelectionMode()));
+    QObject::connect(ui->actAddDiagram, &QAction::triggered, this, [=] { addField(Diagram); });
+    QObject::connect(ui->actAddPicture, &QAction::triggered, this, [=] { addField(Image); });
+    QObject::connect(ui->actAddBarcode, &QAction::triggered, this, [=] { addField(Barcode); });
+    QObject::connect(ui->actAddCrossTab, &QAction::triggered, this, [=] { addField(CrossTab); });
+    QObject::connect(ui->actAddRichText, &QAction::triggered, this, [=] { addField(TextRich); });
+    QObject::connect(ui->actAddField, &QAction::triggered, this, [=] { addField(Text); });
     QObject::connect(ui->actGroup, SIGNAL(triggered()), this, SLOT(setGroupingField()));
     QObject::connect(ui->actUngroup, SIGNAL(triggered()), this, SLOT(setGroupingField()));
     QObject::connect(ui->actionOpenReport, SIGNAL(triggered()), this, SLOT(openFile()));
@@ -410,11 +482,17 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     QObject::connect(ui->actFieldSameWidth, SIGNAL(triggered()), this, SLOT(alignFields()));
     QObject::connect(ui->actSettings, SIGNAL(triggered()), this, SLOT(showSetting()));
     QObject::connect(ui->actGroupProperty, SIGNAL(triggered()), this, SLOT(openDBGroupProperty()));
-    QObject::connect(ui->actCheckUpdates, SIGNAL(triggered()), this, SLOT(checkUpdates()));
     QObject::connect(ui->actPageSettings, SIGNAL(triggered()), this, SLOT(showPageSetting()));
     QObject::connect(ui->actPreview, SIGNAL(triggered()), this, SLOT(showPreview()));
-    QObject::connect(ui->actDataSource, SIGNAL(triggered()), this, SLOT(showDataSource()));
-    QObject::connect(ui->actReadme, SIGNAL(triggered()), this, SLOT(openReadme()));
+    QObject::connect(ui->actDataSource, SIGNAL(triggered()), this, SLOT(showPane()));
+    QObject::connect(ui->actScriptEditing, SIGNAL(triggered()), this, SLOT(showPane()));
+    QObject::connect(ui->actReadmeQtRPT, &QAction::triggered, [=] {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(QCoreApplication::applicationDirPath()+"/ReadmeQtRPT.pdf"));
+    });
+    QObject::connect(ui->actReadmeQtRptDesigner, &QAction::triggered, [=] {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(QCoreApplication::applicationDirPath()+"/ReadmeQtRptDesigner.pdf"));
+    });
+
 
     actRepTitle = new QAction(tr("Report Title"),this);
     actRepTitle->setObjectName("actRepTitle");
@@ -473,7 +551,7 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     QObject::connect(actMasterFooter, SIGNAL(triggered()), this, SLOT(addBand()));
 
     //Menu for selecting bands type
-    QMenu *subBand1 = new QMenu(this);
+    auto subBand1 = new QMenu(this);
     subBand1->setObjectName("subBand1");
     subBand1->addAction(actRepTitle);
     subBand1->addAction(actPageHeader);
@@ -486,67 +564,68 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     subBand1->addAction(actReportSummary);
 
     ui->actionInsert_band->setMenu(subBand1);
-    QToolButton * btn1 = qobject_cast<QToolButton *>(ui->toolBar_3->widgetForAction(ui->actionInsert_band));
+    auto btn1 = qobject_cast<QToolButton *>(ui->toolBar_3->widgetForAction(ui->actionInsert_band));
     btn1->setPopupMode(QToolButton::InstantPopup);
     QObject::connect(subBand1, SIGNAL(aboutToShow()), this, SLOT(clickOnTBtn()));
 
+
     //Actions for drawing
-    QAction *actDrawLine2 = new QAction(tr("Line"),this);
+    auto actDrawLine2 = new QAction(tr("Line"),this);
     actDrawLine2->setObjectName("actDrawLine2");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/line2.png")), QIcon::Normal, QIcon::On);
     actDrawLine2->setIcon(icon);
     QObject::connect(actDrawLine2, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawLine3 = new QAction(tr("Line with arrow at the end"),this);
+    auto actDrawLine3 = new QAction(tr("Line with arrow at the end"),this);
     actDrawLine3->setObjectName("actDrawLine3");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/line3.png")), QIcon::Normal, QIcon::On);
     actDrawLine3->setIcon(icon);
     QObject::connect(actDrawLine3, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawLine4 = new QAction(tr("Line with arrow at the start"),this);
+    auto actDrawLine4 = new QAction(tr("Line with arrow at the start"),this);
     actDrawLine4->setObjectName("actDrawLine4");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/line4.png")), QIcon::Normal, QIcon::On);
     actDrawLine4->setIcon(icon);
     QObject::connect(actDrawLine4, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawLine5 = new QAction(tr("Line with arrows at both side"),this);
+    auto actDrawLine5 = new QAction(tr("Line with arrows at both side"),this);
     actDrawLine5->setObjectName("actDrawLine5");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/line5.png")), QIcon::Normal, QIcon::On);
     actDrawLine5->setIcon(icon);
     QObject::connect(actDrawLine5, SIGNAL(triggered()), this, SLOT(addDraw()));
-    //
-    QAction *actDrawRectangle = new QAction(tr("Rectangle"),this);
+
+    auto actDrawRectangle = new QAction(tr("Rectangle"),this);
     actDrawRectangle->setObjectName("actDrawRectangle");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/rectangle.png")), QIcon::Normal, QIcon::On);
     actDrawRectangle->setIcon(icon);
     QObject::connect(actDrawRectangle, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawRoundedRectangle = new QAction(tr("Rounded rectangle"),this);
+    auto actDrawRoundedRectangle = new QAction(tr("Rounded rectangle"),this);
     actDrawRoundedRectangle->setObjectName("actDrawRoundedRectangle");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/roundedReactangle.png")), QIcon::Normal, QIcon::On);
     actDrawRoundedRectangle->setIcon(icon);
     QObject::connect(actDrawRoundedRectangle, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawEllipse = new QAction(tr("Ellipse"),this);
+    auto actDrawEllipse = new QAction(tr("Ellipse"),this);
     actDrawEllipse->setObjectName("actDrawEllipse");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/ellipse.png")), QIcon::Normal, QIcon::On);
     actDrawEllipse->setIcon(icon);
     QObject::connect(actDrawEllipse, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawTriangle = new QAction(tr("Triangle"),this);
+    auto actDrawTriangle = new QAction(tr("Triangle"),this);
     actDrawTriangle->setObjectName("actDrawTriangle");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/triangle.png")), QIcon::Normal, QIcon::On);
     actDrawTriangle->setIcon(icon);
     QObject::connect(actDrawTriangle, SIGNAL(triggered()), this, SLOT(addDraw()));
 
-    QAction *actDrawRhombus = new QAction(tr("Rhombus"),this);
+    auto actDrawRhombus = new QAction(tr("Rhombus"),this);
     actDrawRhombus->setObjectName("actDrawRhombus");
     icon.addPixmap(QPixmap(QString::fromUtf8(":/new/prefix1/images/rhombus.png")), QIcon::Normal, QIcon::On);
     actDrawRhombus->setIcon(icon);
     QObject::connect(actDrawRhombus, SIGNAL(triggered()), this, SLOT(addDraw()));
 
     //Menu for selecting drawing
-    QMenu *subBand2 = new QMenu(this);
+    auto subBand2 = new QMenu(this);
     subBand2->setObjectName("subBand2");
     //subBand2->addAction(actDrawLine1);
     subBand2->addAction(actDrawLine2);
@@ -560,7 +639,7 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     subBand2->addAction(actDrawRhombus);    
 
     ui->actAddDrawing->setMenu(subBand2);
-    QToolButton * btn2 = qobject_cast<QToolButton *>(ui->toolBar_3->widgetForAction(ui->actAddDrawing));
+    auto btn2 = qobject_cast<QToolButton *>(ui->toolBar_3->widgetForAction(ui->actAddDrawing));
     btn2->setPopupMode(QToolButton::InstantPopup);
     QObject::connect(subBand2, SIGNAL(aboutToShow()), this, SLOT(clickOnTBtn()));
 
@@ -580,67 +659,162 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     bandMenu->setFocusPolicy(Qt::NoFocus);
     bandMenu->addSeparator();
 
-    xmlDoc = new QDomDocument("Report");
+    xmlDoc = QSharedPointer<QDomDocument>(new QDomDocument("Report"));
+
+    scriptEditor = new ScriptEditor(xmlDoc, this);
+    scriptEditor->setVisible(false);
+
 
     sqlDesigner = new SqlDesigner(xmlDoc, this);
     QDomElement dsElement;
     sqlDesigner->addDiagramDocument(dsElement);
-
-    QObject::connect(sqlDesigner, SIGNAL(changed(bool)), ui->actSaveReport, SLOT(setEnabled(bool)));
-    ui->horizontalLayout->addWidget(sqlDesigner);
     sqlDesigner->setVisible(false);
+    QObject::connect(sqlDesigner, SIGNAL(changed(bool)), ui->actSaveReport, SLOT(setEnabled(bool)));
+
+
+    stackedWidget = new QStackedWidget(this);
+    stackedWidget->setObjectName(QStringLiteral("stackedWidget"));
+    stackedWidget->setMinimumWidth(200);
+    stackedWidget->setMaximumWidth(800);
+    stackedWidget->setVisible(false);
+    ui->horizontalLayout->addWidget(stackedWidget);
+
+    stackedWidget->addWidget(scriptEditor);
+    stackedWidget->addWidget(sqlDesigner);
+
+    ui->splitter->addWidget(stackedWidget);
+
+    QList<int> lst;
+    lst << 15 << 400 << 15;
+    ui->splitter->setSizes(lst);
+
+    ui->actShowGrid->setChecked(settings.value("ShowGrid",true).toBool());
 
     newReportPage();
 
-    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
-    if (settings.value("CheckUpdates",true).toBool())
-        checkUpdates();
-
-    if (QCoreApplication::instance()->arguments().size() > 1) {
-        fileName = QCoreApplication::instance()->arguments().at(1);
-        openFile();
-    }
     this->installEventFilter(this);
+
+    loadPlugin();
+
+    if (this->property("AllowStart").toBool() == false) {
+        while (!pluginsLoaders.isEmpty()) {
+            auto pluginLoader = pluginsLoaders.takeFirst();
+            pluginLoader->unload();
+            delete pluginLoader;
+        }
+
+        qApp->quit();
+    }
 }
 
-void MainWindow::openReadme() {
-    QDesktopServices::openUrl(QUrl("file:///"+QCoreApplication::applicationDirPath()+"/readme.pdf", QUrl::TolerantMode));
+void MainWindow::runSilentMode()
+{
+    for (auto &arg : m_args) {
+        if (arg.toLower().contains(".pdf"))
+            pdfName = arg;
+        if (arg.toLower().contains(".xml"))
+            fileName = arg;
+    }
+
+    if (!fileName.isEmpty() && !pdfName.isEmpty()) {
+        openFile();
+        showPreview();
+    }
 }
 
-void MainWindow::checkUpdates() {
-    XYZDownloadManager dl(this);
-    dl.setParent(this);
-    QString urlVersion = "http://garr.dl.sourceforge.net/project/qtrpt/version.txt";
-    dl.setTarget(urlVersion);
-    dl.download(true);
+#include "CustomInterface.h"
+bool MainWindow::loadPlugin()
+{
+    QDir pluginsDir(qApp->applicationDirPath() + "/plugins");
+#if defined(Q_OS_WIN)
+    //if (pluginsDir.dirName().toLower() == "debug" || pluginsDir.dirName().toLower() == "release")
+    //    pluginsDir.cdUp();
+#elif defined(Q_OS_MAC)
+    if (pluginsDir.dirName() == "MacOS") {
+        pluginsDir.cdUp();
+        pluginsDir.cdUp();
+        pluginsDir.cdUp();
+    }
+#endif
+    //pluginsDir.cdUp();
+    //pluginsDir.cd("plugins");
 
-    QEventLoop loop;
-    QObject::connect(&dl,SIGNAL(done()),&loop,SLOT(quit()));
-    loop.exec();
+    QStringList filters;
+    filters << "*.dll" << "*.so" << "*.dylib";
+    pluginsDir.setNameFilters(filters);
+
+    QMenu *menuPlugins = nullptr;
+    if (pluginsDir.entryList(QDir::Files).size() > 0) {
+        menuPlugins = new QMenu("Plugins", ui->menuService);
+        ui->menuService->addMenu(menuPlugins);
+    }
+
+    for (QString &fileName : pluginsDir.entryList(QDir::Files)) {
+        auto pluginLoader = new QPluginLoader(pluginsDir.absoluteFilePath(fileName), this);
+        auto plugin = pluginLoader->instance();
+
+        qDebug() << fileName << plugin;
+        if (plugin) {
+            plugin->setParent(this);
+            plugins << plugin;
+            pluginsLoaders << pluginLoader;
+
+            auto echoInterface = qobject_cast<CustomInterface *>(plugin);
+
+            int index = plugin->metaObject()->indexOfClassInfo("AddToMenu");
+            if (QString(plugin->metaObject()->classInfo(index).value()) == "true") {
+                index = plugin->metaObject()->indexOfClassInfo("PluginName");
+                QString pluginName = plugin->metaObject()->classInfo(index).value();
+
+                if (echoInterface) {
+                    auto act = new QAction(pluginName, menuPlugins);
+                    QObject::connect(act, &QAction::triggered, this, [=] {
+                        echoInterface->execute(xmlDoc);
+                        echoInterface->saveData(xmlDoc);
+
+                        ui->actSaveReport->setEnabled(true);
+                    });
+
+                    menuPlugins->addAction(act);
+                }
+            }
+
+            index = plugin->metaObject()->indexOfClassInfo("RunOnLoading");
+            if (QString(plugin->metaObject()->classInfo(index).value()) == "true")
+                if (echoInterface)
+                    echoInterface->execute(xmlDoc);
+        }
+    }
+
+    return true;
 }
 
-void MainWindow::openDBGroupProperty() {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    ReportBand *band = static_cast<ReportBand *>(repPage->scene->selectedItems().at(0));
-    FldPropertyDlg *dlg = new FldPropertyDlg(this);
-    if (band != 0 && band->bandType == DataGroupHeader) {
-        dlg->showThis(1,band,"");
+void MainWindow::openDBGroupProperty()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    auto band = qgraphicsitem_cast<ReportBand *>(repPage->scene->selectedItems().at(0));
+
+    QScopedPointer<FldPropertyDlg> dlg(new FldPropertyDlg(this));
+    if (band != nullptr && band->bandType == MasterData) {
+        dlg->showThis(1,band);
         setParamTree(StartNewNumeration, band->getStartNewNumertaion());
         setParamTree(StartNewPage, band->getStartNewPage());
+        setParamTree(GroupFields, band->getGroupingField());
         setReportChanged();
     }
-    delete dlg;
 }
 
-void MainWindow::updateRecentFileActions() {
+void MainWindow::updateRecentFileActions()
+{
     QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
     QStringList files = settings.value("recentFileList").toStringList();
 
     int numRecentFiles = qMin(files.size(), (int)MaxRecentFiles);
 
-    for (int i = 0; i < numRecentFiles; ++i) {
+    for (quint16 i = 0; i < numRecentFiles; ++i) {
         QString text = tr("&%1 %2").arg(i + 1).arg(QFileInfo(files[i]).fileName());
         recentFileActs[i]->setText(text);
         recentFileActs[i]->setData(files[i]);
@@ -652,22 +826,27 @@ void MainWindow::updateRecentFileActions() {
     separatorAct->setVisible(numRecentFiles > 0);
 }
 
-void MainWindow::openRecentFile() {
-    QAction *action = qobject_cast<QAction *>(sender());
+void MainWindow::openRecentFile()
+{
+    auto action = qobject_cast<QAction *>(sender());
     if (action) {
         fileName = action->data().toString();
         openFile();
     }
 }
 
-void MainWindow::setCurrentFile(const QString &fileName) {
+void MainWindow::setCurrentFile(const QString &fileName)
+{
     setWindowFilePath(fileName);
 
     QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
     QStringList files = settings.value("recentFileList").toStringList();
     files.removeAll(fileName);
     files.prepend(fileName);
+
     while (files.size() > MaxRecentFiles)
         files.removeLast();
 
@@ -675,36 +854,38 @@ void MainWindow::setCurrentFile(const QString &fileName) {
     updateRecentFileActions();
 }
 
-void MainWindow::itemResizing(QGraphicsItem *item) {
+void MainWindow::itemResizing(QGraphicsItem *item)
+{
     if (item->type() == ItemType::GBox || item->type() == ItemType::GBand) {
-        GraphicsBox *box = static_cast<GraphicsBox*>(item);
+        auto box = qgraphicsitem_cast<GraphicsBox*>(item);
         setParamTree(Height, box->getHeight());
 
         if (item->type() == ItemType::GBand) {
             auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(ui->tabWidget->currentIndex()));
-            repPage->correctBandGeom(0);
-        }
-        if (item->type() == ItemType::GBox) {
-            ReportBand *band = static_cast<ReportBand *>(item->parentItem());
+            repPage->correctBandGeom(nullptr);
+            setParamTree(Height, box->getHeight() - ReportBand::titleHeight);
+        } else if (item->type() == ItemType::GBox) {
+            auto band = qgraphicsitem_cast<ReportBand *>(item->parentItem());
             setParamTree(Width, box->getWidth());
             setParamTree(Top, box->pos().y() - band->titleHeight);
             setParamTree(Left, box->pos().x());
         }
-    }
-    if (item->type() == ItemType::GLine) {
-        GraphicsLine *line = static_cast<GraphicsLine*>(item);
+    } else if (item->type() == ItemType::GLine) {
+        auto line = static_cast<GraphicsLine*>(item);
         setParamTree(Length, (int)line->getLength());
     }
 
     setReportChanged();
 }
 
-void MainWindow::changeFrameWidth() {
+void MainWindow::changeFrameWidth()
+{
     listFrameStyle->close();
     execButtonCommand(FrameWidth,this->cbFrameWidth->currentText().toInt());
 }
 
-void MainWindow::showFrameStyle(QPoint pos) {
+void MainWindow::showFrameStyle(QPoint pos)
+{
     pos.setY(pos.y()+81);
     pos.setX(pos.x());
     listFrameStyle->move(pos);
@@ -714,58 +895,44 @@ void MainWindow::showFrameStyle(QPoint pos) {
 void MainWindow::setFrameStyle(QListWidgetItem * item) {
     listFrameStyle->close();
 
-    if (selectedGItem() == 0) return;
-    GraphicsBox *field = static_cast<GraphicsBox *>(selectedGItem());
-    if (field == 0) return;
+    auto gItem = selectedGItem();
+    if (gItem == nullptr) return;
+    auto field = qgraphicsitem_cast<GraphicsBox *>(gItem);
+    if (field == nullptr) return;
 
     setReportChanged();
 
     switch (item->data(Qt::UserRole).toInt()) {
-        case 1: {
-            field->setBorder(FrameStyle,Solid);
-            break;
-        }
-        case 2: {
-            field->setBorder(FrameStyle,Dashed);
-            break;
-        }
-        case 3: {
-            field->setBorder(FrameStyle,Dotted);
-            break;
-        }
-        case 4: {
-            field->setBorder(FrameStyle,Dot_dash);
-            break;
-        }
-        case 5: {
-            field->setBorder(FrameStyle,Dot_dot_dash);
-            break;
-        }
-        case 6: {
-            field->setBorder(FrameStyle,Double);
-            break;
-        }
+    case 1:
+        field->setBorder(FrameStyle,Solid);
+        break;
+    case 2:
+        field->setBorder(FrameStyle,Dashed);
+        break;
+    case 3:
+        field->setBorder(FrameStyle,Dotted);
+        break;
+    case 4:
+        field->setBorder(FrameStyle,Dot_dash);
+        break;
+    case 5:
+        field->setBorder(FrameStyle,Dot_dot_dash);
+        break;
+    case 6:
+        field->setBorder(FrameStyle,Double);
+        break;
     }
 }
 
-void MainWindow::showAbout() {
-    auto dlg = new AboutDlg(this);
+void MainWindow::showAbout()
+{
+    QScopedPointer<AboutDlg> dlg(new AboutDlg(this));
     dlg->exec();
-    delete dlg;
 }
 
-void MainWindow::reportPageChanged(int index) {
+void MainWindow::reportPageChanged(int index)
+{
     rootItem->takeChildren();
-
-    this->actRepTitle->setEnabled(true);
-    this->actReportSummary->setEnabled(true);
-    this->actPageHeader->setEnabled(true);
-    this->actPageFooter->setEnabled(true);
-    this->actMasterData->setEnabled(true);
-    this->actMasterFooter->setEnabled(true);
-    this->actMasterHeader->setEnabled(true);
-    this->actDataGroupingHeader->setEnabled(true);
-    this->actDataGroupingFooter->setEnabled(true);
 
     if (ui->tabWidget->count() == 1)
         ui->actDeleteReportPage->setEnabled(false);
@@ -773,41 +940,25 @@ void MainWindow::reportPageChanged(int index) {
         ui->actDeleteReportPage->setEnabled(true);
 
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(index));
-    QList<ReportBand *> allReportBand = repPage->getReportBands();
-    if (allReportBand.size() != 0)
-        qSort(allReportBand.begin(), allReportBand.end(), compareBandType);
+	repPage->setScale(cbZoom->currentText());
+    auto allReportBand = repPage->getReportBands();
 
-    for(auto band : allReportBand) {
+    for (auto &band : allReportBand) {
         rootItem->addChild(band->itemInTree);
         band->itemInTree->setExpanded(true);
         band->setFocus();
-        //---
-        if (band->bandType == ReportTitle) this->actRepTitle->setEnabled(false);
-        if (band->bandType == ReportSummary) this->actReportSummary->setEnabled(false);
-        if (band->bandType == PageHeader) this->actPageHeader->setEnabled(false);
-        if (band->bandType == PageFooter) this->actPageFooter->setEnabled(false);
-        if (band->bandType == MasterData) this->actMasterData->setEnabled(false);
-        if (band->bandType == MasterFooter) this->actMasterFooter->setEnabled(false);
-        if (band->bandType == MasterHeader) this->actMasterHeader->setEnabled(false);
-        if (band->bandType == DataGroupHeader) this->actDataGroupingHeader->setEnabled(false);
-        if (band->bandType == DataGroupFooter) this->actDataGroupingFooter->setEnabled(false);
     }
+
+    checkAddBandPermission();
 
     if (sqlDesigner != nullptr)
         sqlDesigner->setCurrentPage(index);
 }
 
-void MainWindow::newReportPage() {
+void MainWindow::newReportPage()
+{
     ui->tabWidget->setUpdatesEnabled(false);
-    auto repPage = new RepScrollArea(this);
-    QObject::connect(repPage->scene->m_undoStack, SIGNAL(canUndoChanged(bool)), ui->actUndo, SLOT(setEnabled(bool)));
-    QObject::connect(repPage->scene->m_undoStack, SIGNAL(canRedoChanged(bool)), ui->actRedo, SLOT(setEnabled(bool)));
-    repPage->rootItem = rootItem;
-    repPage->icon = icon;
-    repPage->isShowGrid = ui->actShowGrid->isChecked();
-    QObject::connect(ui->actShowGrid, SIGNAL(triggered(bool)), repPage, SLOT(showGrid(bool)));
-    QObject::connect(repPage->scene, SIGNAL(itemResized(QGraphicsItem *)), this, SLOT(itemResizing(QGraphicsItem *)));
-    QObject::connect(repPage->scene, SIGNAL(mousePos(QPointF)), this, SLOT(mousePos(QPointF)));
+    auto repPage = new RepScrollArea(rootItem, this);
 
     if (sqlDesigner != nullptr && sender() == ui->actNewReportPage) {
         QDomElement dsElement;
@@ -816,76 +967,76 @@ void MainWindow::newReportPage() {
 
     ui->tabWidget->addTab(repPage,tr("Page %1").arg(ui->tabWidget->count()+1));
     ui->tabWidget->setCurrentIndex(ui->tabWidget->count()-1);
-
-    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
-    ui->actShowGrid->setChecked(settings.value("ShowGrid",true).toBool());
-    repPage->showGrid(settings.value("ShowGrid",true).toBool());
-
     ui->tabWidget->setUpdatesEnabled(true);
+
+    if (sender() != nullptr)
+        ui->actSaveReport->setEnabled(true);
 }
 
-void MainWindow::deleteReportPage() {
+void MainWindow::deleteReportPage()
+{
     if (sqlDesigner != nullptr)
         sqlDesigner->removeDiagramDocument(ui->tabWidget->currentIndex());
-    ui->tabWidget->removeTab(ui->tabWidget->currentIndex());
+
+    int index = ui->tabWidget->currentIndex();
+    ui->tabWidget->setCurrentIndex(index-1);
+
+
+    ui->tabWidget->removeTab(index);
     enableAdding();
+    ui->actSaveReport->setEnabled(true);
 }
 
-void MainWindow::generateName(QGraphicsItem *mItem) {
+void MainWindow::sceneItemAdded(QGraphicsItem *mItem)
+{
+    generateName(mItem);
+    ui->actSelect_tool->setChecked(true);
+    ui->actSaveReport->setEnabled(true);
+}
+
+void MainWindow::generateName(QGraphicsItem *mItem)
+{
     auto cont = gItemToHelper(mItem);
 
     bool good = false;
     QString contName;
     switch(cont->getFieldType()) {
-        case Barcode: {
+        case Barcode:
             contName = "barcode%1";
             break;
-        }
-        case Text: {
+        case Text:
             contName = "field%1";
             break;
-        }
-        case TextRich: {
+        case TextRich:
             contName = "richText%1";
             break;
-        }
-        case Image: {
+        case Image:
             contName = "image%1";
             break;
-        }
-        case Diagram: {
+        case Diagram:
             contName = "diagram%1";
             break;
-        }
-        case Reactangle: {
+        case Reactangle:
             contName = "reactangle%1";
             break;
-        }
-        case Circle: {
+        case Circle:
             contName = "circle%1";
             break;
-        }
-        case RoundedReactangle: {
+        case RoundedReactangle:
             contName = "roundedReactangle%1";
             break;
-        }
-        case Triangle: {
+        case Triangle:
             contName = "triangle%1";
             break;
-        }
-        case Rhombus: {
+        case Rhombus:
             contName = "rhombus%1";
             break;
-        }
-        case QtRptName::Line: {
+        case QtRptName::Line:
             contName = "line%1";
             break;
-        }
-        case QtRptName::CrossTab: {
+        case QtRptName::CrossTab:
             contName = "crosstab%1";
             break;
-        }
         default:
             contName = "field%1";
     }
@@ -895,19 +1046,12 @@ void MainWindow::generateName(QGraphicsItem *mItem) {
     while (!good) {
         bool fnd = false;
 
-        for (int t=0; t<ui->tabWidget->count(); t++) {
-            RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( t ));
-            for(auto item : repPage->scene->items()) {
-                if (item->type() == ItemType::GBox || item->type() == ItemType::GBand) {
-                    GraphicsBox *gItem = static_cast<GraphicsBox *>(item);
-                    if (gItem->objectName() == QString(contName).arg(cf)) {
-                        fnd = true;
-                        break;
-                    }
-                }
-                if (item->type() == ItemType::GLine) {
-                    GraphicsLine *gItem = static_cast<GraphicsLine *>(item);
-                    if (gItem->objectName() == QString(contName).arg(cf)) {
+        for (int t = 0; t < ui->tabWidget->count(); t++) {
+            auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( t ));
+            for (auto &item : repPage->scene->items()) {
+                auto helper = dynamic_cast<GraphicsHelperClass*>(item);
+                if (helper != nullptr) {
+                    if (helper->objectName() == QString(contName).arg(cf)) {
                         fnd = true;
                         break;
                     }
@@ -924,119 +1068,140 @@ void MainWindow::generateName(QGraphicsItem *mItem) {
     }
 }
 
-void MainWindow::clickOnTBtn() {
-    if (sender()->objectName() == "subBand1") {
-        ui->actionInsert_band->setChecked(true);
+bool MainWindow::checkName(const QString &name)
+{
+    for (int t = 0; t < ui->tabWidget->count(); t++) {
+        auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( t ));
+        for (auto &item : repPage->scene->items()) {
+            auto helper = dynamic_cast<GraphicsHelperClass*>(item);
+            if (helper != nullptr) {
+                if (helper->objectName() == name) {
+                    return true;
+                }
+            }
+        }
     }
-    if (sender()->objectName() == "subBand2") {
-        ui->actAddDrawing->setChecked(true);
-    }
+
+    return false;
 }
 
-void MainWindow::showPageSetting() {
-    PageSettingDlg *dialog = new PageSettingDlg(this);
+void MainWindow::clickOnTBtn()
+{
+    if (sender()->objectName() == "subBand1")
+        ui->actionInsert_band->setChecked(true);
+    if (sender()->objectName() == "subBand2")
+        ui->actAddDrawing->setChecked(true);
+}
+
+void MainWindow::showPageSetting()
+{
+    QScopedPointer<PageSettingDlg> dlg(new PageSettingDlg(this));
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( ui->tabWidget->currentIndex() ));
-    dialog->showThis(repPage->pageSetting);
-    if (dialog->result() == QDialog::Accepted) {
-        repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(ui->tabWidget->currentIndex()));
-        repPage->pageSetting = dialog->pageSetting;
+
+    dlg->showThis(repPage->pageSetting);
+    if (dlg->result() == QDialog::Accepted) {
+        repPage->pageSetting = dlg->pageSetting;
         repPage->setPaperSize(0);
         ui->actSaveReport->setEnabled(true);
     }
-    delete dialog;
 }
 
-void MainWindow::showSetting() {
-    SettingDlg *dialog = new SettingDlg(this);
-    dialog->showThis();
-    delete dialog;
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-    settings.setIniCodec("UTF-8");
-    ui->actShowGrid->setChecked(settings.value("ShowGrid",true).toBool());
-    repPage->showGrid(settings.value("ShowGrid",true).toBool());
-}
-
-void MainWindow::showDataSource() {
-    sqlDesigner->setVisible( ui->actDataSource->isChecked() );
-    sqlDesigner->showDSData(ui->tabWidget->currentIndex());
-    if (ui->actDataSource->isChecked() ) {
-
-    }
-}
-
-QDomElement MainWindow::getDataSourceElement(QDomNode n) {
-    QDomElement dsElement;
-    while(!n.isNull()) {
-        QDomElement e = n.toElement();
-        if ((!e.isNull()) && (e.tagName() == "DataSource")) {
-            dsElement = e;
-        }
-        n = n.nextSibling();
-    }
-    return dsElement;
-}
-
-void MainWindow::delItemInTree(QGraphicsItem *gItem, QTreeWidgetItem *item) {
-    if (item == 0) return;
-    QTreeWidgetItem *itemAbove = ui->treeWidget->itemAbove(item);
-    if (itemAbove == 0) return;
-    QTreeWidgetItem *parent = item->parent();
-    while (item->childCount() > 0) {
-        QTreeWidgetItem *tmp = item->takeChild(0);
-        tmp = 0;
-        delete tmp;
-    }
-    int index = parent->indexOfChild(item);
-    delete parent->takeChild(index);
-    ui->treeWidget->setCurrentItem(itemAbove);
-    ui->actSaveReport->setEnabled(true);
-
-    //Корректируем расположение бэндов
-    ReportBand *reportBand = static_cast<ReportBand *>(gItem);
-    if (reportBand == 0) return;
+void MainWindow::showSetting()
+{
+    QScopedPointer<SettingDlg> dlg(new SettingDlg(this));
+    dlg->showThis();
 
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    if (repPage != 0) repPage->correctBandGeom(reportBand);
+    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
 
-    if (reportBand->bandType == ReportTitle) actRepTitle->setEnabled(true);
-    if (reportBand->bandType == ReportSummary) actReportSummary->setEnabled(true);
-    if (reportBand->bandType == PageHeader) actPageHeader->setEnabled(true);
-    if (reportBand->bandType == PageFooter) actPageFooter->setEnabled(true);
-    if (reportBand->bandType == MasterData) actMasterData->setEnabled(true);
-    if (reportBand->bandType == MasterFooter) actMasterFooter->setEnabled(true);
-    if (reportBand->bandType == MasterHeader) actMasterHeader->setEnabled(true);
-    if (reportBand->bandType == DataGroupHeader) actDataGroupingHeader->setEnabled(true);
-    if (reportBand->bandType == DataGroupFooter) actDataGroupingFooter->setEnabled(true);
+    ui->actShowGrid->setChecked(settings.value("ShowGrid",true).toBool());
+    repPage->showGrid(settings.value("ShowGrid",true).toBool());
+
+    auto cbFontName = ui->toolBar->findChild<QFontComboBox*>("cbFontName");
+    auto cbFontSize = ui->toolBar->findChild<QComboBox*>("cbFontSize");
+
+    cbFontSize->setCurrentIndex(cbFontSize->findText(settings.value("FontSize", 8).toString()));
+    cbFontName->setCurrentIndex(cbFontName->findText(settings.value("FontName", "MS Shell Dlg 2").toString()));
 }
 
-void MainWindow::closeProgram() {
+void MainWindow::showPane()
+{
+    if (sender() == ui->actDataSource && ui->actDataSource->isChecked()) {
+        ui->actScriptEditing->setChecked(false);
+
+        sqlDesigner->showDSData(ui->tabWidget->currentIndex());
+    }
+
+    if (sender() == ui->actScriptEditing && ui->actScriptEditing->isChecked()) {
+        ui->actDataSource->setChecked(false);
+    }
+
+    if (ui->actDataSource->isChecked() || ui->actScriptEditing->isChecked())
+        stackedWidget->setVisible(true);
+    else
+        stackedWidget->setVisible(false);
+
+    sqlDesigner->setVisible(ui->actDataSource->isChecked());
+    scriptEditor->setVisible(ui->actScriptEditing->isChecked());
+}
+
+QVector<QDomElement> MainWindow::getDataSourceElements(QDomNode n)
+{
+    QVector<QDomElement> elementList;
+    while(!n.isNull()) {
+        QDomElement e = n.toElement();
+        if (!e.isNull() && e.tagName() == "DataSource")
+            elementList << e;
+
+        n = n.nextSibling();
+    }
+    return elementList;
+}
+
+void MainWindow::closeProgram()
+{
     if (ui->actSaveReport->isEnabled()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, tr("Saving"),tr("The report was changed.\nSave the report?"),
-                                         QMessageBox::Yes | QMessageBox::No);
+                                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (reply == QMessageBox::Yes)
             saveReport();
+        else if (reply == QMessageBox::Cancel)
+            return;
     }
     this->close();
 }
 
-//Open file
-void MainWindow::openFile() {    
+void MainWindow::openXML(QSharedPointer<QDomDocument> xmlDoc)
+{
+    this->xmlDoc = xmlDoc;
+    loadReport();
+}
+
+// Open file
+void MainWindow::openFile()
+{
     if (ui->actSaveReport->isEnabled()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, tr("Saving"),tr("The report was changed.\nSave the report?"),
-                                         QMessageBox::Yes | QMessageBox::No);
+                                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (reply == QMessageBox::Yes)
             saveReport();
+        else if (reply == QMessageBox::Cancel)
+            return;
     }
     ui->actSaveReport->setEnabled(false);
 
-    if (sender() != 0 && sender() == ui->actionOpenReport) {
+    if (sender() != nullptr && sender() == ui->actionOpenReport) {
         newReport();
 
         QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
-        settings.setIniCodec("UTF-8");
+        #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+            settings.setIniCodec("UTF-8");
+        #endif
         QString folderPath = QApplication::applicationDirPath();
         if (settings.value("recentFileList").toStringList().count() > 0)
             folderPath = QFileInfo(settings.value("recentFileList").toStringList().at(0)).path();
@@ -1047,44 +1212,69 @@ void MainWindow::openFile() {
 
     QFile file(fileName);
     setCurrentFile(fileName);
-    if (!file.open(QIODevice::ReadOnly))
+    if (!file.open(QIODevice::ReadOnly)) {
         return;
+    }
     if (!xmlDoc->setContent(&file)) {
         file.close();
         return;
     }
     file.close();
+	
+    loadReport();
+}
+
+void MainWindow::loadReport()
+{
+	QApplication::setOverrideCursor(Qt::WaitCursor);
+
+    for (auto &plugin : plugins) {
+        auto echoInterface = qobject_cast<CustomInterface *>(plugin);
+        if (echoInterface) {
+            echoInterface->loadData(xmlDoc);
+        }
+    }
+
+    dontSelect = true;
 
     QDomElement docElem = xmlDoc->documentElement();  //get root element
     QDomElement repElem;
 
-    while (ui->tabWidget->count() > 1) {
+    while (ui->tabWidget->count() > 1)
         ui->tabWidget->removeTab(ui->tabWidget->count()-1);
-    }
 
+    scriptEditor->clear();
     sqlDesigner->clearAll();
 
-    for (int t=0; t<docElem.childNodes().count(); t++) {
+    int repNo = 0;
+    for (int t = 0; t < docElem.childNodes().count(); t++) {
         if (docElem.tagName() == "Reports" )  //Делаем проверку для совместимости со старыми версиями
             repElem = docElem.childNodes().at(t).toElement();
-        else
-            repElem = docElem;
 
-        if (t != 0) newReportPage();
+        if (repElem.tagName() != "Report")
+            continue;
 
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(t));
+        if (repNo != 0) newReportPage();
+
+        auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(repNo));
         repPage->clearReport();
-        repPage->pageSetting.marginsLeft     = repElem.attribute("marginsLeft").toInt();
-        repPage->pageSetting.marginsRight    = repElem.attribute("marginsRight").toInt();
-        repPage->pageSetting.marginsTop      = repElem.attribute("marginsTop").toInt();
-        repPage->pageSetting.marginsBottom   = repElem.attribute("marginsBottom").toInt();
-        repPage->pageSetting.pageWidth       = repElem.attribute("pageWidth").toInt();
-        repPage->pageSetting.pageHeight      = repElem.attribute("pageHeight").toInt();
-        repPage->pageSetting.pageOrientation = repElem.attribute("orientation").toInt();
-        repPage->pageSetting.border          = repElem.attribute("border", "0").toInt();
-        repPage->pageSetting.borderWidth     = repElem.attribute("borderWidth", "1").toInt();
-        repPage->pageSetting.borderColor     = repElem.attribute("borderColor", "rgba(0,0,0,255)");
-        repPage->pageSetting.borderStyle     = repElem.attribute("borderStyle", "solid");
+        repPage->pageSetting.pageFormat        = repElem.attribute("pageFormat", "A4");
+        repPage->pageSetting.marginsLeft       = repElem.attribute("marginsLeft").toInt();
+        repPage->pageSetting.marginsRight      = repElem.attribute("marginsRight").toInt();
+        repPage->pageSetting.marginsTop        = repElem.attribute("marginsTop").toInt();
+        repPage->pageSetting.marginsBottom     = repElem.attribute("marginsBottom").toInt();
+        repPage->pageSetting.pageWidth         = repElem.attribute("pageWidth").toInt();
+        repPage->pageSetting.pageHeight        = repElem.attribute("pageHeight").toInt();
+        repPage->pageSetting.pageOrientation   = repElem.attribute("orientation").toInt();
+        repPage->pageSetting.border            = repElem.attribute("border", "0").toInt();
+        repPage->pageSetting.borderWidth       = repElem.attribute("borderWidth", "1").toInt();
+        repPage->pageSetting.borderColor       = repElem.attribute("borderColor", "rgba(0,0,0,255)");
+        repPage->pageSetting.borderStyle       = repElem.attribute("borderStyle", "solid");
+        repPage->pageSetting.watermark         = repElem.attribute("watermark", "0").toInt();
+        repPage->pageSetting.watermarkOpacity  = repElem.attribute("watermarkOpacity", "0.5").toDouble();
+
+        QByteArray byteArray = QByteArray::fromBase64(repElem.attribute("watermarkPixmap").toLatin1());
+        repPage->pageSetting.watermarkPixmap = QPixmap::fromImage(QImage::fromData(byteArray, "PNG"));
 
         ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), tr("Page %1").arg(ui->tabWidget->currentIndex()+1));
         repPage->setPaperSize(0);
@@ -1094,7 +1284,7 @@ void MainWindow::openFile() {
         QDomNode n = repElem.firstChild();
         while(!n.isNull()) {
             QDomElement e = n.toElement(); // try to convert the node to an element.
-            if ((!e.isNull()) && (e.tagName() == "ReportBand")) {
+            if (!e.isNull() && e.tagName() == "ReportBand") {
                 BandType type = QtRptName::Undefined;
                 if (e.attribute("type") == "ReportTitle")
                     type = ReportTitle;
@@ -1117,20 +1307,20 @@ void MainWindow::openFile() {
 
                 if (type == QtRptName::Undefined) continue;
 
-                RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-                ReportBand *reportBand = repPage->m_addBand(type,bandMenu,e.attribute("height").toInt());
-                reportBand->setObjectName(e.attribute("name"));
-                reportBand->setGroupingField(e.attribute("groupingField"));
-                reportBand->setStartNewNumeration(e.attribute("startNewNumeration").toInt());
-                reportBand->setShowInGroup(e.attribute("showInGroup").toInt());
-                reportBand->setStartNewPage(e.attribute("startNewPage").toInt());
+                auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+                auto bandHeight = e.attribute("height").toInt();
+                auto bandName = e.attribute("name");
+                auto bandNo = e.attribute("bandNo", "1").toInt();
+                auto reportBand = repPage->m_addBand(type, bandMenu, bandHeight, bandName, bandNo);
+                reportBand->loadParamFromXML(e);
+
 
                 QDomNode c = n.firstChild();
                 while(!c.isNull()) {
                     QDomElement e = c.toElement(); // try to convert the node to an element.
                     if (!e.isNull() && (e.tagName() == "TContainerField" || e.tagName() == "TContainerLine")) {
                         if (e.tagName() == "TContainerField") {
-                            GraphicsBox *contField = new GraphicsBox();
+                            auto contField = new GraphicsBox();
                             repPage->scene->addItem(contField);
                             contField->setParentItem(reportBand);
                             contField->setMenu(contMenu);
@@ -1138,7 +1328,7 @@ void MainWindow::openFile() {
                             repPage->newFieldTreeItem(contField);
                         }
                         if (e.tagName() == "TContainerLine") {
-                            GraphicsLine *contLine = new GraphicsLine();
+                            auto contLine = new GraphicsLine();
                             repPage->scene->addItem(contLine);
                             contLine->setParentItem(reportBand);
                             contLine->setMenu(contMenu);
@@ -1146,7 +1336,7 @@ void MainWindow::openFile() {
                             repPage->newFieldTreeItem(contLine);
                         }
 
-                        QCoreApplication::processEvents();
+                        //QCoreApplication::processEvents();
                     }
                     c = c.nextSibling();
                 }
@@ -1155,11 +1345,14 @@ void MainWindow::openFile() {
             n = n.nextSibling();
         }
 
-        QDomElement dsElement = getDataSourceElement( repElem.firstChild() );
-        sqlDesigner->loadDiagramDocument(t, dsElement);
+        QVector<QDomElement> dsElements = getDataSourceElements( repElem.firstChild() );
+        sqlDesigner->loadDataSources(repNo, dsElements);
+        scriptEditor->showScript(xmlDoc);
 
         repPage->setUpdatesEnabled(true);
-        QCoreApplication::processEvents();
+        //QCoreApplication::processEvents();
+
+        repNo++;
     }
 
     ui->treeWidget->clearSelection();
@@ -1170,43 +1363,56 @@ void MainWindow::openFile() {
     ui->actSaveReport->setEnabled(false);
     this->setWindowTitle("QtRPT Designer "+fileName);
     enableAdding();
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(0));
+
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(0));
+    QCoreApplication::processEvents();
+    repPage->scene->update();
     repPage->scene->m_undoStack->clear();
+
+    dontSelect = false;
+
+    QApplication::restoreOverrideCursor();
 }
 
-//Select color from dialog and set param
-void MainWindow::chooseColor() {
-    EditorDelegate *ed = qobject_cast<EditorDelegate*>(sender());
-    if (selectedGItem() == 0) return;
-    QColor color;
-    QColorDialog *dlg = new QColorDialog(color, this);
+// Select color from dialog and set param
+void MainWindow::chooseColor()
+{
+    auto item = selectedGItem();
+    if (item == nullptr) return;
+
+    auto ed = qobject_cast<EditorDelegate*>(sender());
+    Command command;
+    if (ed != nullptr)
+        command = (Command)ui->treeParams->currentItem()->data(1,Qt::UserRole).toInt();
+    else
+        command = getCommand(sender());
+
+    auto helper = gItemToHelper(item);
+    QColor color = helper->getColorValue(command);
+    QScopedPointer<QColorDialog> dlg(new QColorDialog(color, this));
     if (dlg->exec() == QDialog::Accepted) {
         color = dlg->selectedColor();
         ui->actSaveReport->setEnabled(true);
     } else return;
 
-    Command command;
-    if (ed != 0) {
-        command = (Command)ui->treeParams->currentItem()->data(1,Qt::UserRole).toInt();
-    } else {
-        command = getCommand(sender());
-    }
-    execButtonCommand(command,color);
-
-    delete dlg;
+    execButtonCommand(command, color);
 }
 
-void MainWindow::changeTextFont() {
-    if (selectedGItem() == 0) return;
-    GraphicsBox *gItem = static_cast<GraphicsBox *>(selectedGItem());
-    if (gItem == 0) return;
-    if (gItem->type() != GBox) return;
+void MainWindow::changeTextFont()
+{
+    if (selectedGItem() == nullptr)
+        return;
+    auto gItem = qgraphicsitem_cast<GraphicsBox *>(selectedGItem());
+    if (gItem == nullptr)
+        return;
+    if (gItem->type() != GBox)
+        return;
 
-    QAction *action = qobject_cast<QAction *>(sender());
-    QComboBox *cmb = qobject_cast<QComboBox *>(sender());
+    auto action = qobject_cast<QAction *>(sender());
+    auto cmb = qobject_cast<QComboBox *>(sender());
     Command command = getCommand(sender());
     QVariant v;
-    if (action != 0) {
+    if (action != nullptr) {
         v = action->isChecked();
         if (action == ui->actAlignLeft) v=0;
         if (action == ui->actAlignRight) v=2;
@@ -1216,20 +1422,21 @@ void MainWindow::changeTextFont() {
         if (action == ui->actAlignVCenter) v=1;
         if (action == ui->actAlignBottom) v=2;
     }
-    if (cmb != 0) {
+    if (cmb != nullptr)
         v = cmb->itemText(cmb->currentIndex());
-    }
 
     execButtonCommand(command,v);
     ui->actSaveReport->setEnabled(true);
 }
 
-//Определяем, тип команды в зависимости от нажатой кнопки
-Command MainWindow::getCommand(QObject *widget) {
-    if (widget == 0) return None;
-    QAction *action = qobject_cast<QAction *>(widget);
-    QComboBox *cmb = qobject_cast<QComboBox *>(widget);
-    if (action != 0) {
+// Определяем, тип команды в зависимости от нажатой кнопки
+Command MainWindow::getCommand(QObject *widget)
+{
+    if (widget == nullptr)
+        return None;
+    auto action = qobject_cast<QAction*>(widget);
+    auto cmb = qobject_cast<QComboBox*>(widget);
+    if (action != nullptr) {
         if (action == ui->actionBold) return Bold;
         else if (action == ui->actionItalic) return Italic;
         else if (action == ui->actionUnderline) return Underline;
@@ -1253,7 +1460,7 @@ Command MainWindow::getCommand(QObject *widget) {
         else if (action == ui->actFontColor) return FontColor;
         else return None;
     }
-    if (cmb != 0) {
+    if (cmb != nullptr) {
         if (cmb == cbFontSize)
             return FontSize;
         if (cmb == cbFontName)
@@ -1265,21 +1472,24 @@ Command MainWindow::getCommand(QObject *widget) {
     return None;
 }
 
-void MainWindow::undo() {
+void MainWindow::undo()
+{
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    qDebug()<<tr("Going to make undo: ")<<repPage->scene->m_undoStack->undoText();
+    qDebug() << tr("Going to make undo: ")<<repPage->scene->m_undoStack->undoText();
     repPage->scene->m_undoStack->undo();
     showParamState();
 }
 
-void MainWindow::redo() {
+void MainWindow::redo()
+{
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    qDebug()<<tr("Going to make redo: ")<<repPage->scene->m_undoStack->undoText();
+    qDebug() << tr("Going to make redo: ")<<repPage->scene->m_undoStack->undoText();
     repPage->scene->m_undoStack->redo();
     showParamState();
 }
 
-void MainWindow::setGroupingField() {
+void MainWindow::setGroupingField()
+{
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
     QString groupName = "";
     if (sender() == ui->actGroup) {
@@ -1288,9 +1498,9 @@ void MainWindow::setGroupingField() {
         int cf = 1;
         while (!good) {
             bool fnd = false;
-            for(auto item : repPage->scene->items()) {
+            for (auto &item : repPage->scene->items()) {
                 if (item->type() == ItemType::GLine || item->type() == ItemType::GBox) {
-                    GraphicsHelperClass *helper = gItemToHelper(item);
+                    auto helper = gItemToHelper(item);
                     if (helper->getGroupName() == QString(groupName).arg(cf)) {
                         fnd = true;
                         break;
@@ -1307,11 +1517,15 @@ void MainWindow::setGroupingField() {
         }
     }
 
-    for(auto item : repPage->scene->items()) {
+    for (auto &item : repPage->scene->items()) {
         if (item->type() == ItemType::GLine || item->type() == ItemType::GBox) {
-            GraphicsHelperClass *helper = gItemToHelper(item);
+            auto helper = gItemToHelper(item);
+            auto helperSelected = gItemToHelper(selectedGItem());
 
-            if (sender() == ui->actUngroup && helper->getGroupName() == gItemToHelper(selectedGItem())->getGroupName()) {
+            if (helper == nullptr || helperSelected == nullptr)
+                continue;
+
+            if (sender() == ui->actUngroup && helper->getGroupName() == helperSelected->getGroupName()) {
                 helper->setGroupName("");
                 helper->helperSelect(false);
             }
@@ -1321,46 +1535,73 @@ void MainWindow::setGroupingField() {
     }
 }
 
-QGraphicsItem *MainWindow::selectedGItem() {
+QGraphicsItem *MainWindow::selectedGItem()
+{
     auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    if (repPage->scene->selectedItems().size() == 0) return 0;
-    return repPage->scene->selectedItems().at(0);
+    if (repPage->scene->itemsSelected().isEmpty())
+        return nullptr;
+
+    return repPage->scene->itemsSelected().at(0);
 }
 
-GraphicsHelperClass *MainWindow::gItemToHelper(QGraphicsItem *item) {
-    GraphicsHelperClass *helper = nullptr;
-    if (item->type() == ItemType::GBox || item->type() == ItemType::GBand) {
-        auto box = static_cast<GraphicsBox*>(item);
-        helper = static_cast<GraphicsHelperClass *>(box);
-    }
-    if (item->type() == ItemType::GLine) {
-        auto line = static_cast<GraphicsLine*>(item);
-        helper = static_cast<GraphicsHelperClass *>(line);
-    }
+GraphicsHelperClass *MainWindow::gItemToHelper(QGraphicsItem *item)
+{
+    auto helper = dynamic_cast<GraphicsHelperClass*>(item);
     return helper;
 }
 
-//Container's selection
-void MainWindow::sceneItemSelectionChanged(QGraphicsItem *item) {
-    if (item->type() != ItemType::GLine &&
-        item->type() != ItemType::GBox &&
-        item->type() != ItemType::GBand
-        ) return;
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    GraphicsScene *scene = repPage->scene;
+// Container's selection
+void MainWindow::sceneItemSelectionChanged(QGraphicsItem *item)
+{
+    if (dontSelect)
+        return;
+
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    auto scene = repPage->scene;
+
+    if (!item) {
+        // unselect all
+        scene->blockSignals(true);
+        for (auto &m_item : scene->items()) {
+            bool isLine = m_item->type() == ItemType::GLine;
+            bool isBox = m_item->type() == ItemType::GBox;
+            bool isBand = m_item->type() == ItemType::GBand;
+
+            if (isLine || isBox || isBand) {
+                 auto helper = dynamic_cast<GraphicsHelperClass*>(m_item);
+                 helper->helperSelect(false);
+            }
+        }
+
+        ui->treeParams->clear();
+        showParamState();
+        scene->blockSignals(false);
+        return;
+    }
+
+    bool isLine = item->type() == ItemType::GLine;
+    bool isBox = item->type() == ItemType::GBox;
+    bool isBand = item->type() == ItemType::GBand;
+    if (!isLine && !isBox && !isBand)
+        return;
+
     scene->blockSignals(true);
 
-    GraphicsHelperClass *calling_helper = gItemToHelper(item);
+    auto calling_helper = dynamic_cast<GraphicsHelperClass*>(item);
 
     if (QApplication::keyboardModifiers() != Qt::ControlModifier) {
-        for(auto m_item : scene->items()) {
+        for (auto &m_item : scene->items()) {
             if (item != m_item) {
-                if (m_item->type() == ItemType::GLine || m_item->type() == ItemType::GBox || m_item->type() == ItemType::GBand) {
-                     GraphicsHelperClass *helper = gItemToHelper(m_item);
+                bool isLine = m_item->type() == ItemType::GLine;
+                bool isBox = m_item->type() == ItemType::GBox;
+                bool isBand = m_item->type() == ItemType::GBand;
 
-                     if (!helper->getGroupName().isEmpty() && helper->getGroupName() == calling_helper->getGroupName()) {
+                if (isLine || isBox || isBand) {
+                     auto helper = dynamic_cast<GraphicsHelperClass*>(m_item);
+
+                     if (!helper->getGroupName().isEmpty() && helper->getGroupName() == calling_helper->getGroupName())
                         helper->helperSelect(true);
-                     }
+
                      //Un-select containters
                      if (!calling_helper->getGroupName().isEmpty() && helper->getGroupName() != calling_helper->getGroupName())
                          helper->helperSelect(false);
@@ -1369,54 +1610,91 @@ void MainWindow::sceneItemSelectionChanged(QGraphicsItem *item) {
                 }
             }
         }
+
         ui->treeParams->clear();
         showParamState();
     }
     scene->blockSignals(false);
 }
 
-void MainWindow::alignFields() {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    GraphicsBox *etalon = static_cast<GraphicsBox*>(selectedGItem());
+void MainWindow::alignFields()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    auto etalon = qgraphicsitem_cast<GraphicsBox*>(selectedGItem());
 
-    for(auto item : repPage->scene->items()) {
+    for (auto &item : repPage->scene->items()) {
         if (item->type() == ItemType::GBox) {
-            GraphicsBox *box = static_cast<GraphicsBox*>(item);
+            auto box = qgraphicsitem_cast<GraphicsBox*>(item);
             if (box->isSelected() && box != etalon) {
-                if (sender() == ui->actFieldLeft) {
-                    item->setPos(etalon->pos().x(), item->pos().y());
-                }
-                if (sender() == ui->actFieldRight) {
-                    item->setPos(etalon->pos().x()+etalon->getWidth()-box->getWidth(), item->pos().y());
-                }
-                if (sender() == ui->actFieldMiddle) {
-                    item->setPos(etalon->pos().x()+etalon->getWidth()/2-box->getWidth()/2, item->pos().y());
-                }
-                if (sender() == ui->actFieldTop) {
-                    item->setPos(item->pos().x(), etalon->pos().y());
-                }
-                if (sender() == ui->actFieldBottom) {
-                    item->setPos(item->pos().x(), etalon->pos().y()+etalon->getHeight()-box->getHeight());
-                }
-                if (sender() == ui->actFieldCenter) {
-                    item->setPos(item->pos().x(), etalon->pos().y()+etalon->getHeight()/2-box->getHeight()/2);
-                }
-                if (sender() == ui->actFieldSameHeight) {
+                if (sender() == ui->actFieldLeft)
+                    box->setPos(etalon->pos().x(), item->pos().y());
+                if (sender() == ui->actFieldRight)
+                    box->setPos(etalon->pos().x()+etalon->getWidth()-box->getWidth(), item->pos().y());
+                if (sender() == ui->actFieldMiddle)
+                    box->setPos(etalon->pos().x()+etalon->getWidth()/2-box->getWidth()/2, item->pos().y());
+                if (sender() == ui->actFieldTop)
+                    box->setPos(item->pos().x(), etalon->pos().y());
+                if (sender() == ui->actFieldBottom)
+                    box->setPos(item->pos().x(), etalon->pos().y()+etalon->getHeight()-box->getHeight());
+                if (sender() == ui->actFieldCenter)
+                    box->setPos(item->pos().x(), etalon->pos().y()+etalon->getHeight()/2-box->getHeight()/2);
+                if (sender() == ui->actFieldSameHeight)
                     box->setHeight(etalon->getHeight());
-                }
-                if (sender() == ui->actFieldSameWidth) {
+                if (sender() == ui->actFieldSameWidth)
                     box->setWidth(etalon->getWidth());
-                }
             }
         }
     }
+
+    ui->actSaveReport->setEnabled(true);
 }
 
-void MainWindow::saveReport() {
+static void xmlWrite(QXmlStreamWriter *w, QDomElement e)
+{
+    // note that this only writes elements, text and attributes (comments and CDATA ignored)
+
+    w->writeStartElement(e.nodeName());
+
+    // sort attributes by name
+
+    auto map = e.attributes();
+    QList<QString> attrNames;
+    for (int i = 0; i < map.count(); i++) {
+        QDomAttr a = map.item(i).toAttr();
+        attrNames.append(a.name());
+    }
+
+    std::sort(attrNames.begin(), attrNames.end());
+
+    // write sorted attributes
+
+    for (int i = 0; i < attrNames.count(); i++) {
+        QString name = attrNames.at(i);
+        QString value = e.attribute(name);
+        w->writeAttribute(name, value);
+    }
+
+    // recursively write children (text and elements)
+
+    QDomNode child = e.firstChild();
+    while (!child.isNull()) {
+        if (child.isText())
+            w->writeCharacters(child.toText().data());
+        else if (child.isElement())
+            xmlWrite(w, child.toElement());
+
+        child = child.nextSibling();
+    }
+
+    w->writeEndElement();
+}
+
+QSharedPointer<QDomDocument> MainWindow::saveXML()
+{
     xmlDoc->clear();
     QDomElement docElem = xmlDoc->createElement("Reports");
     docElem.setAttribute("lib","QtRPT");
-    docElem.setAttribute("programmer","Aleksey Osipov");
+    docElem.setAttribute("programmer","Oleksii Osypov");
     docElem.setAttribute("email","aliks-os@ukr.net");
     xmlDoc->appendChild(docElem);
 
@@ -1427,10 +1705,13 @@ void MainWindow::saveReport() {
         n = docElem.firstChild();
     }
 
-    for (int rp=0; rp<ui->tabWidget->count(); rp++) {
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(rp));
+    scriptEditor->saveParamToXML(xmlDoc, docElem);
+
+    for (quint16 rp = 0; rp < ui->tabWidget->count(); rp++) {
+        auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(rp));
         QDomElement repElem = xmlDoc->createElement("Report");
         repElem.setAttribute("pageNo",QString::number(rp+1));
+        repElem.setAttribute("pageFormat",repPage->pageSetting.pageFormat);
         repElem.setAttribute("pageHeight",repPage->pageSetting.pageHeight);
         repElem.setAttribute("pageWidth",repPage->pageSetting.pageWidth);
         repElem.setAttribute("marginsLeft",repPage->pageSetting.marginsLeft);
@@ -1442,20 +1723,44 @@ void MainWindow::saveReport() {
         repElem.setAttribute("borderWidth",repPage->pageSetting.borderWidth);
         repElem.setAttribute("borderColor",repPage->pageSetting.borderColor);
         repElem.setAttribute("borderStyle",repPage->pageSetting.borderStyle);
+        repElem.setAttribute("watermark",repPage->pageSetting.watermark);
+        repElem.setAttribute("watermarkOpacity",repPage->pageSetting.watermarkOpacity);
+
+        QByteArray byteArray;
+        QBuffer buffer(&byteArray);
+        buffer.open(QIODevice::WriteOnly);
+
+        repPage->pageSetting.watermarkPixmap.save(&buffer, "PNG");
+
+        QString s = byteArray.toBase64();
+
+        repElem.setAttribute("watermarkPixmap",s);
         docElem.appendChild(repElem);
 
-        for(auto gItem : repPage->scene->items(Qt::AscendingOrder)) {
-            if (gItem->type() == ItemType::GBand) {
+        for (auto &gItem : repPage->scene->items(Qt::AscendingOrder))
+            if (gItem->type() == ItemType::GBand)
                 setXMLProperty(&repElem, gItem, 1);
-            }
-        }
-        for(auto gItem : repPage->scene->items(Qt::AscendingOrder)) {
-            if (gItem->type() == ItemType::GBox || gItem->type() == ItemType::GLine) {
+
+        for (auto &gItem : repPage->scene->items(Qt::AscendingOrder))
+            if (gItem->type() == ItemType::GBox || gItem->type() == ItemType::GLine)
                 setXMLProperty(&repElem, gItem, 1);
-            }
-        }
+
         setXMLProperty(&repElem, sqlDesigner, 0); //Set XML for DataSource
     }
+
+    for (auto &plugin : plugins) {
+        auto echoInterface = qobject_cast<CustomInterface *>(plugin);
+        if (echoInterface) {
+            echoInterface->saveData(xmlDoc);
+        }
+    }
+
+    return xmlDoc;
+}
+
+void MainWindow::saveReport()
+{
+    saveXML();
 
     if (fileName.isEmpty() || fileName.isNull() || sender() == ui->actSaveAs) {
         QString tmpfileName = QFileDialog::getSaveFileName(this, tr("Save File"), "", tr("XML Files (*.xml)"));
@@ -1464,10 +1769,19 @@ void MainWindow::saveReport() {
     }
 
     QFile file(fileName);
-    if (file.open(QIODevice::WriteOnly)){
+    if (file.open(QIODevice::WriteOnly)) {
         setCurrentFile(fileName);
+
+//        QXmlStreamWriter w(&file);
+//        w.setAutoFormatting(true);
+//        w.setAutoFormattingIndent(2);
+//        w.writeStartDocument();
+//        xmlWrite(&w, xmlDoc->documentElement());
+//        w.writeEndDocument();
+
         QTextStream stream(&file);
         xmlDoc->save(stream, 2, QDomNode::EncodingFromTextStream);
+
         file.close();
         ui->actSaveReport->setEnabled(false);
         this->setWindowTitle("QtRPT Designer "+fileName);
@@ -1476,67 +1790,36 @@ void MainWindow::saveReport() {
     }
 }
 
-bool MainWindow::setXMLProperty(QDomElement *repElem, void *ptr, int type) {
+bool MainWindow::setXMLProperty(QDomElement *repElem, void *ptr, int type)
+{
     QGraphicsItem *gItem = nullptr;
     QDomElement elem;
 
     if (type == 0) {
-        SqlDesigner *sqlDesigner = static_cast<SqlDesigner *>(ptr);
-        elem = sqlDesigner->saveParamToXML(xmlDoc);
-        if (!elem.isNull())
-            repElem->appendChild(elem);
-    } else
+        auto sqlDesigner = static_cast<SqlDesigner *>(ptr);
+        auto elemList = sqlDesigner->saveParamToXML(xmlDoc);
+        for (auto &elem : elemList) {
+            if (!elem.isNull())
+                repElem->appendChild(elem);
+        }
+    } else {
         gItem = static_cast<QGraphicsItem *>(ptr);
+    }
 
     if (gItem != nullptr && gItem->type() == ItemType::GBand) {
         auto band = static_cast<ReportBand *>(ptr);
-        elem = xmlDoc->createElement("ReportBand");
-        QString type;
-        if (band->bandType == ReportTitle)
-            type = "ReportTitle";
-        if (band->bandType == ReportSummary)
-            type = "ReportSummary";
-        if (band->bandType == PageHeader)
-            type = "PageHeader";
-        if (band->bandType == PageFooter)
-            type = "PageFooter";
-        if (band->bandType == MasterData)
-            type = "MasterData";
-        if (band->bandType == MasterFooter) {
-            type = "MasterFooter";
-            elem.setAttribute("showInGroup",band->getShowInGroup());
-        }
-        if (band->bandType == MasterHeader) {
-            type = "MasterHeader";
-            elem.setAttribute("showInGroup",band->getShowInGroup());
-        }
-        if (band->bandType == DataGroupHeader) {
-            type = "DataGroupHeader";
-            elem.setAttribute("groupingField",band->getGroupingField());
-            elem.setAttribute("startNewNumeration",band->getStartNewNumertaion());
-            elem.setAttribute("startNewPage",band->getStartNewPage());
-        }
-        if (band->bandType == DataGroupFooter) {
-            type = "DataGroupFooter";
-            //elem.setAttribute("groupingField",band->getGroupingField());
-            elem.setAttribute("showInGroup","1");
-        }
-        elem.setAttribute("name",band->objectName());
-        elem.setAttribute("type",type);
-        //        elem.setAttribute("top",widget->geometry().y());
-        //        elem.setAttribute("left",widget->geometry().x());
-        elem.setAttribute("width",band->getWidth());
-        elem.setAttribute("height",band->getHeight()-band->titleHeight);
+        elem = band->saveParamToXML(xmlDoc);
         repElem->appendChild(elem);
     }
     if (gItem != nullptr && (gItem->type() == ItemType::GBox || gItem->type() == ItemType::GLine)) {
-        GraphicsBox *item = static_cast<GraphicsBox *>(gItem);
-        GraphicsLine *line = static_cast<GraphicsLine *>(gItem);
+        auto item = static_cast<GraphicsBox *>(gItem);
+        auto line = static_cast<GraphicsLine *>(gItem);
+        auto band = static_cast<GraphicsBox *>(gItem->parentItem());
 
-        GraphicsBox *band = static_cast<GraphicsBox *>(gItem->parentItem());
         QString parent = band->objectName();
         QDomNodeList nodelist = repElem->elementsByTagName("ReportBand");
-        for (int i=0; i != nodelist.count(); i++) {
+
+        for (quint16 i = 0; i != nodelist.count(); i++) {
             QDomNode prn = nodelist.item(i).toElement();
             if (prn.toElement().attribute("name") == parent) {
                 if (gItem->type() == ItemType::GBox)
@@ -1550,10 +1833,13 @@ bool MainWindow::setXMLProperty(QDomElement *repElem, void *ptr, int type) {
     return false;
 }
 
-//Show param of the container
-void MainWindow::showParamState() {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    if (repPage->scene->selectedItems().size() == 0) return;
+// Show param of the container
+void MainWindow::showParamState()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    if (repPage->scene->selectedItems().isEmpty())
+        return;
+
     ui->treeParams->clear();
 
     bool enbl1 = false;
@@ -1570,7 +1856,7 @@ void MainWindow::showParamState() {
     ui->actFontColor->setEnabled(false);
 
     if (repPage->scene->selectedItems().at(0)->type() == ItemType::GBand) {
-        ReportBand *rep = static_cast<ReportBand *>(repPage->scene->selectedItems().at(0));
+        auto band = static_cast<ReportBand *>(repPage->scene->selectedItems().at(0));
         ui->actBackgroundColor->setEnabled(false);
         ui->actAlignBottom->setChecked(false);
         ui->actAlignCenter->setChecked(false);
@@ -1590,18 +1876,27 @@ void MainWindow::showParamState() {
         ui->actLineRight->setChecked(false);
         ui->actLineTop->setChecked(false);
 
-        selectItemInTree(rep->itemInTree);
-        setParamTree(Name, rep->objectName());
-        setParamTree(Height, rep->getHeight() - rep->titleHeight);
-        switch(rep->bandType) {
+        setParamTree(Name, band->objectName());
+        setParamTree(Height, band->getHeight() - band->titleHeight);
+        switch(band->bandType) {
             case DataGroupHeader: {
-                setParamTree(StartNewNumeration, rep->getStartNewNumertaion());
-                setParamTree(StartNewPage, rep->getStartNewPage());
+                break;
+            }
+            case DataGroupFooter: {
+                setParamTree(GroupLevel, band->getGroupLevel());
+                break;
+            }
+            case MasterData: {
+                setParamTree(DSName, band->getDSName());
+                setParamTree(GroupParam, tr("Group param"));
+                setParamTree(StartNewNumeration, band->getStartNewNumertaion(), true);
+                setParamTree(StartNewPage, band->getStartNewPage(), true);
+                setParamTree(GroupFields, band->getGroupingField(), true);
                 break;
             }
             case MasterHeader:
             case MasterFooter: {
-                setParamTree(ShowInGroup, rep->getShowInGroup());
+                setParamTree(ShowInGroup, band->getShowInGroup());
                 break;
             }
             default:
@@ -1609,8 +1904,8 @@ void MainWindow::showParamState() {
         }
     }
     if (repPage->scene->selectedItems().at(0)->type() == ItemType::GBox) {
-        GraphicsBox *field = static_cast<GraphicsBox *>(repPage->scene->selectedItems().at(0));
-        ReportBand *band = static_cast<ReportBand *>(field->parentItem());
+        auto field = static_cast<GraphicsBox *>(repPage->scene->selectedItems().at(0));
+        auto band = static_cast<ReportBand *>(field->parentItem());
         enbl1 = true;
         enbl2 = true;
 
@@ -1631,7 +1926,6 @@ void MainWindow::showParamState() {
         bool right = field->borderIsCheck(FrameRight);
 
         //Sets params in the tree
-        selectItemInTree(field->itemInTree);
         setParamTree(Name, field->objectName());
         setParamTree(Height, field->getHeight());
         setParamTree(Width, field->getWidth());
@@ -1703,6 +1997,7 @@ void MainWindow::showParamState() {
                 setParamTree(AligmentH, al);
                 setParamTree(AligmentV, alV);
                 setParamTree(AutoHeight, field->getAutoHeight());
+                setParamTree(RenderingMode, field->getRenderingMode());
                 setParamTree(BackgroundColor, field->getColorValue(BackgroundColor));
                 setParamTree(BorderColor, field->getColorValue(BorderColor));
                 setParamTree(Font, tr("Font"));
@@ -1719,7 +2014,10 @@ void MainWindow::showParamState() {
                 setParamTree(FrameTop, top, true);
                 setParamTree(FrameBottom, bottom, true);
                 setParamTree(FrameWidth, field->getBorderWidth());
-                setParamTree(TextWrap, field->getTextWrap());
+                setParamTree(TextWrap, field->textWrap());
+                setParamTree(TextRotate, field->textRotate());
+                setParamTree(PaddingX, field->paddingX());
+                setParamTree(PaddingY, field->paddingY());
                 break;
             }
             case TextRich: {
@@ -1741,8 +2039,7 @@ void MainWindow::showParamState() {
     if (repPage->scene->selectedItems().at(0)->type() == ItemType::GLine) {
         this->cbFrameWidth->setEnabled(true);
 
-        GraphicsLine *line = static_cast<GraphicsLine *>(repPage->scene->selectedItems().at(0));
-        selectItemInTree(line->itemInTree);
+        auto line = static_cast<GraphicsLine *>(repPage->scene->selectedItems().at(0));
         setParamTree(BorderColor, line->getColorValue(BorderColor));
         setParamTree(FrameWidth, line->getBorderWidth());
         setParamTree(Name, line->objectName());
@@ -1768,8 +2065,9 @@ void MainWindow::showParamState() {
     ui->actLineTop->setEnabled(enbl1);
 }
 
-//Поиск ветки в дереве параметра
-QTreeWidgetItem *MainWindow::findItemInTree(Command command) {
+// Поиск ветки в дереве параметра
+QTreeWidgetItem *MainWindow::findItemInTree(Command command)
+{
     QTreeWidgetItemIterator it(ui->treeParams);
     while (*it) {
         QTreeWidgetItem *item = (*it);
@@ -1777,22 +2075,24 @@ QTreeWidgetItem *MainWindow::findItemInTree(Command command) {
             return item;
         ++it;
     }
-    return 0;
+    return nullptr;
 }
 
-void MainWindow::newReport() {
+void MainWindow::newReport()
+{
     if (ui->actSaveReport->isEnabled()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, tr("Saving"),tr("The report was changed.\nSave the report?"),
-                                         QMessageBox::Yes | QMessageBox::No);
+                                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (reply == QMessageBox::Yes)
             saveReport();
+        else if (reply == QMessageBox::Cancel)
+            return;
     }
-    while (ui->tabWidget->count() > 1) {
+    while (ui->tabWidget->count() > 1)
         ui->tabWidget->removeTab(ui->tabWidget->count()-1);
-    }
 
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(0));
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(0));
     repPage->clearReport();
     QTimer::singleShot(10, repPage->scene, SLOT(update()));
 
@@ -1803,63 +2103,63 @@ void MainWindow::newReport() {
     fileName = "";
     this->setWindowTitle("QtRPT Designer "+fileName);
 
-    for(auto action : ui->actionInsert_band->menu()->actions())
+    for (auto &action : ui->actionInsert_band->menu()->actions())
         action->setEnabled(true);
 
+    for (auto &plugin : plugins) {
+        auto echoInterface = qobject_cast<CustomInterface *>(plugin);
+        if (echoInterface) {
+            echoInterface->clear(xmlDoc);
+        }
+    }
+
+    scriptEditor->clear();
     sqlDesigner->clearAll();
     enableAdding();
     repPage->scene->m_undoStack->clear();
 }
 
-void MainWindow::selectItemInTree(QTreeWidgetItem *item) {
-    QTreeWidgetItemIterator it(rootItem);
-    while (*it) {
-        (*it)->setSelected(false);
-        if ((*it) == item)
-            (*it)->setSelected(true);
-        ++it;
-    }
-}
-
-QGraphicsItemList MainWindow::getSelectedItems() {
+QGraphicsItemList MainWindow::getSelectedItems()
+{
     QGraphicsItemList list;
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    for(auto item : repPage->scene->items()) {
-        if (item->type() == ItemType::GBox || item->type() == ItemType::GBand || item->type() == ItemType::GLine) {
-            if (gItemToHelper(item)->helperIsSelected()) {
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    for (auto &item : repPage->scene->items()) {
+        bool isLine = item->type() == ItemType::GLine;
+        bool isBox = item->type() == ItemType::GBox;
+        bool isBand = item->type() == ItemType::GBand;
+
+        if (isBox || isBand || isLine)
+            if (gItemToHelper(item)->helperIsSelected())
                 list.append(item);
-            }
-        }
     }
     return list;
 }
 
-GraphicsHelperList MainWindow::getSelectedHelperItems() {
+GraphicsHelperList MainWindow::getSelectedHelperItems()
+{
     GraphicsHelperList list;
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    for(auto item : repPage->scene->items()) {
-        if (item->type() == ItemType::GBox || item->type() == ItemType::GBand || item->type() == ItemType::GLine) {
-            if (gItemToHelper(item)->helperIsSelected()) {
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    for (auto &item : repPage->scene->items())
+        if (item->type() == ItemType::GBox || item->type() == ItemType::GBand || item->type() == ItemType::GLine)
+            if (gItemToHelper(item)->helperIsSelected())
                 list.append(gItemToHelper(item));
-            }
-        }
-    }
     return list;
 }
 
-void MainWindow::execButtonCommand(Command command, QVariant value) {
+void MainWindow::execButtonCommand(Command command, QVariant value)
+{
     if (command == None) return;
-    if (selectedGItem() == 0) return;
+    if (selectedGItem() == nullptr) return;
 
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
 
     //before changing params gets params
     BArrayList oldList = ParamCommand::getBArrayFromContList(getSelectedHelperItems());
 
-    for(auto item : getSelectedItems()) {
+    for (auto &item : getSelectedItems())
         processCommand(command, value, item);
-    }
-    setParamTree(command,value);
+
+    setParamTree(command, value);
     repPage->scene->update();
     ui->actSaveReport->setEnabled(true);
 
@@ -1867,25 +2167,28 @@ void MainWindow::execButtonCommand(Command command, QVariant value) {
     BArrayList newList = ParamCommand::getBArrayFromContList(getSelectedHelperItems());
     QList<PairCont> lst = ParamCommand::compoundArrays(oldList,newList);
 
-    GraphicsScene *scene = qobject_cast<GraphicsScene*>(repPage->scene);
+    auto scene = qobject_cast<GraphicsScene*>(repPage->scene);
     scene->m_undoStack->push(new ParamCommand( lst, repPage->scene ));
 }
 
-void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *item) {
-    ReportBand *band = 0;
-    GraphicsLine *line = 0;
-    GraphicsBox *box = 0;
+void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *item)
+{
+    ReportBand *band = nullptr;
+    GraphicsLine *line = nullptr;
+    GraphicsBox *box = nullptr;
+
     auto helper = gItemToHelper(item);
     if (helper == nullptr) return;
+    if (item->type() == ItemType::GBand)
+        band = static_cast<ReportBand *>(item);
     if (item->type() == ItemType::GBox)
         box = static_cast<GraphicsBox*>(item);
     if (item->type() == ItemType::GLine)
         line = static_cast<GraphicsLine*>(item);
 
     QFont fnt;
-    if (box != 0) {
+    if (box != nullptr)
         fnt = box->getFont();
-    }
 
     switch(command) {
         case None: {
@@ -1937,9 +2240,9 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             break;
         }
         case FrameWidth: {
-            if (box != 0)
+            if (box != nullptr)
                 box->setBorder(command,value);
-            if (line != 0)
+            if (line != nullptr)
                 line->setBorder(command,value);
             break;
         }
@@ -2000,9 +2303,9 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             break;
         }
         case Top: {
-            ReportBand *band = static_cast<ReportBand *>(box->parentItem());
+            auto band = static_cast<ReportBand *>(box->parentItem());
             QPointF r = box->pos();
-            r.setY(value.toInt()+band->titleHeight);
+            r.setY(value.toInt() + band->titleHeight);
             box->setPos(r);
             break;
         }
@@ -2011,12 +2314,21 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             break;
         }
         case Height: {
-            if (band != 0) {
-                band->setHeight(value.toInt()+band->titleHeight);
+            if (band != nullptr) {
+                band->setHeight(value.toInt());
+                auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(ui->tabWidget->currentIndex()));
+                repPage->correctBandGeom(nullptr);
             }
-            if (box != 0) {
+            if (box != nullptr)
                 box->setHeight(value.toInt());
-            }
+            break;
+        }
+        case PaddingX: {
+            box->setPaddingX(value.toInt());
+            break;
+        }
+        case PaddingY: {
+            box->setPaddingY(value.toInt());
             break;
         }
         case Length: {
@@ -2024,7 +2336,7 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             break;
         }
         case Printing: {
-            helper->setPrinting( value.toBool() == true ? "1" : "0" );
+            helper->setPrinting(value.toBool() == true ? "1" : "0");
             break;
         }
         case IgnoreRatioAspect: {
@@ -2039,6 +2351,10 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             line->setArrow(ArrowEnd,value.toBool());
             break;
         }
+        case DSName: {
+            band->setDSName(value.toString());
+            break;
+        }
         case StartNewNumeration: {
             band->setStartNewNumeration(value.toBool());
             break;
@@ -2051,8 +2367,26 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             band->setStartNewPage(value.toBool());
             break;
         }
+        case GroupLevel: {
+            band->setGroupLevel(value.toInt());
+            auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+            repPage->correctBandGeom();
+            break;
+        }
+        case GroupFields: {
+            band->setGroupingField(value.toString());
+            break;
+        }
         case AutoHeight: {
             box->setAutoHeight(value.toBool());
+            break;
+        }
+        case RenderingMode: {
+            box->setRenderingMode(value.toBool());
+            break;
+        }
+        case TextRotate: {
+            box->setTextRotate(value.toInt());
             break;
         }
         case TextWrap: {
@@ -2068,26 +2402,25 @@ void MainWindow::processCommand(Command command, QVariant value, QGraphicsItem *
             break;
         }
         case BorderColor: {
-            helper->setBorder(BorderColor,value.toString());
+            helper->setBorder(BorderColor, value.toString());
             break;
         }
         default: break;
     }
 
-    if (box != 0) {
+    if (box != nullptr)
         box->setFont(fnt);
-    }
 }
 
 //Sets params in the tree
-void MainWindow::setParamTree(Command command, QVariant value, bool child) {
+void MainWindow::setParamTree(Command command, QVariant value, bool child)
+{
     if (command == None) return;
 
     QTreeWidgetItem *item = findItemInTree(command);
-    QTreeWidgetItem *parentNode = 0;
-    if (item == 0 && !child) {
+    QTreeWidgetItem *parentNode = nullptr;
+    if (item == nullptr && !child)
         item = new QTreeWidgetItem(ui->treeParams);
-    }
 
     switch (command) {
         case Name: {
@@ -2159,6 +2492,18 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
             item->setText(1,QString::number(value.toInt()-1));
             break;
         }
+        case PaddingX: {
+            item->setText(0,tr("PaddingX"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            item->setText(1, value.toString());
+            break;
+        }
+        case PaddingY: {
+            item->setText(0,tr("PaddingY"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            item->setText(1, value.toString());
+            break;
+        }
         case Left: {
             item->setText(0,tr("Left"));
             item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
@@ -2185,7 +2530,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FrameLeft: {
             parentNode = findItemInTree(Frame);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Left"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2195,7 +2540,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FrameRight: {
             parentNode = findItemInTree(Frame);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Right"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2205,7 +2550,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FrameTop: {
             parentNode = findItemInTree(Frame);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Top"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2215,7 +2560,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FrameBottom: {
             parentNode = findItemInTree(Frame);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Bottom"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2249,7 +2594,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FontName: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Name"));
             item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
@@ -2259,7 +2604,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FontSize: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Size"));
             item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
@@ -2270,7 +2615,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case Bold: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Bold"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2280,7 +2625,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case Italic: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Italic"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2290,7 +2635,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case Underline: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Underline"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2300,7 +2645,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case Strikeout: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Strikeout"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
@@ -2314,10 +2659,10 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
             else item->setCheckState(1,Qt::Unchecked);
             break;
         }
-        case StartNewNumeration: {
-            item->setText(0,tr("Start New Numeration"));
-            if (value.toBool()) item->setCheckState(1,Qt::Checked);
-            else item->setCheckState(1,Qt::Unchecked);
+        case DSName: {
+            item->setText(0,tr("DataSourceName"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            item->setText(1,value.toString());
             break;
         }
         case ShowInGroup: {
@@ -2326,14 +2671,53 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
             else item->setCheckState(1,Qt::Unchecked);
             break;
         }
+        case GroupParam: {
+            item->setText(0,value.toString());
+            item->setText(1,"");
+            break;
+        }
+        case StartNewNumeration: {
+            parentNode = findItemInTree(GroupParam);
+            if (item == nullptr)
+                item = new QTreeWidgetItem(parentNode);
+            item->setText(0,tr("Start New Numeration"));
+            if (value.toBool()) item->setCheckState(1,Qt::Checked);
+            else item->setCheckState(1,Qt::Unchecked);
+            break;
+        }
+
         case StartNewPage: {
+            parentNode = findItemInTree(GroupParam);
+            if (item == nullptr)
+                item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("Start New Page"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
             else item->setCheckState(1,Qt::Unchecked);
             break;
         }
+        case GroupFields: {
+            parentNode = findItemInTree(GroupParam);
+            if (item == nullptr)
+                item = new QTreeWidgetItem(parentNode);
+            item->setText(0,tr("Groups field"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            item->setText(1, value.toString());
+            break;
+        }
+        case GroupLevel: {
+            item->setText(0,tr("Group Level"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            item->setText(1, value.toString());
+            break;
+        }
         case AutoHeight: {
             item->setText(0,tr("AutoHeight"));
+            if (value.toBool()) item->setCheckState(1,Qt::Checked);
+            else item->setCheckState(1,Qt::Unchecked);
+            break;
+        }
+        case RenderingMode: {
+            item->setText(0,tr("HTML rendering"));
             if (value.toBool()) item->setCheckState(1,Qt::Checked);
             else item->setCheckState(1,Qt::Unchecked);
             break;
@@ -2362,6 +2746,30 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
             else item->setCheckState(1,Qt::Unchecked);
             break;
         }
+        case TextRotate: {
+            item->setText(0,tr("TextRotate"));
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+            switch(value.toInt()) {
+                case 0: {
+                    item->setText(1,tr("0 Degres"));
+                    break;
+                }
+                case 1: {
+                    item->setText(1,tr("90 Degres"));
+                    break;
+                }
+                case 2: {
+                    item->setText(1,tr("180 Degres"));
+                    break;
+                }
+                case 3: {
+                    item->setText(1,tr("270 Degres"));
+                    break;
+                }
+                default: item->setText(1,"");
+            }
+            break;
+        }
         case BackgroundColor: {
             item->setText(0,tr("BackgroundColor"));
             item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsEditable);
@@ -2376,7 +2784,7 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
         case FontColor: {
             parentNode = findItemInTree(Font);
-            if (item == 0)
+            if (item == nullptr)
                 item = new QTreeWidgetItem(parentNode);
             item->setText(0,tr("FontColor"));
             item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsEditable);
@@ -2400,12 +2808,12 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
         }
     }
 
-    GraphicsBox *box = 0;
-    if (selectedGItem()->type() == ItemType::GBox) {
-        box = static_cast<GraphicsBox *>(selectedGItem());
-    }
+    GraphicsBox *box = nullptr;
+    auto selItem = selectedGItem();
+    if (selItem && selItem->type() == ItemType::GBox)
+        box = static_cast<GraphicsBox *>(selItem);
 
-    if (box != 0) {
+    if (box != nullptr) {
         bool top = box->borderIsCheck(FrameTop);
         bool bottom = box->borderIsCheck(FrameBottom);
         bool left = box->borderIsCheck(FrameLeft);
@@ -2426,43 +2834,49 @@ void MainWindow::setParamTree(Command command, QVariant value, bool child) {
 
     item->setData(1,Qt::UserRole,command);
 
-    if (parentNode == 0)
+    if (parentNode == nullptr)
         ui->treeParams->addTopLevelItem(item);
     else
         parentNode->addChild(item);
 }
 
-void MainWindow::selTree(QTreeWidgetItem *tItem, int) {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+void MainWindow::selTree(QTreeWidgetItem *tItem, int)
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
     repPage->scene->unselectAll();
-    for(auto item : repPage->getReportItems()) {
-        if (item == 0) {
+
+    for (auto &item : repPage->scene->items()) {
+        if (item == nullptr) {
             continue;
         } else {
             if (item->type() == ItemType::GLine) {
-                GraphicsLine *line = static_cast<GraphicsLine *>(item);
-                if (line->itemInTree == tItem) {
+                auto line = static_cast<GraphicsLine *>(item);
+                if (line->itemInTree == tItem)
                     line->setSelected(true);
-                }
             }
             if (item->type() == ItemType::GBox) {
-                GraphicsBox *box = static_cast<GraphicsBox *>(item);
-                if (box->itemInTree == tItem) {
+                auto box = static_cast<GraphicsBox *>(item);
+                if (box->itemInTree == tItem)
                     box->setSelected(true);
-                }
             }
             if (item->type() == ItemType::GBand) {
-                ReportBand *band = static_cast<ReportBand *>(item);
-                if (band->itemInTree == tItem) {
+                auto band = static_cast<ReportBand *>(item);
+                if (band->itemInTree == tItem)
                     band->setSelected(true);
-                }
             }
         }
     }
 }
 
-void MainWindow::enableAdding() {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+void MainWindow::setSelectionMode()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    repPage->scene->setMode(GraphicsScene::Mode::SelectObject);
+}
+
+void MainWindow::enableAdding()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
     ui->actAddField->setEnabled(repPage->allowField());
     ui->actAddRichText->setEnabled(repPage->allowField());
     ui->actAddPicture->setEnabled(repPage->allowField());
@@ -2473,76 +2887,104 @@ void MainWindow::enableAdding() {
     //ui->actAddCrossTabBD->setEnabled(repPage->allowField());
 }
 
-void MainWindow::addBand() {
-    BandType type;
-    if (sender()->objectName() == "actRepTitle") {
-        type = ReportTitle;
-    }
-    if (sender()->objectName() == "actReportSummary") {
-        type = ReportSummary;
-    }
-    if (sender()->objectName() == "actPageHeader") {
-        type = PageHeader;
-    }
-    if (sender()->objectName() == "actPageFooter") {
-        type = PageFooter;
-    }
-    if (sender()->objectName() == "actMasterData") {
-        type = MasterData;
-    }
-    if (sender()->objectName() == "actMasterFooter") {
-        type = MasterFooter;
-    }
-    if (sender()->objectName() == "actMasterHeader") {
-        type = MasterHeader;
-    }
-    if (sender()->objectName() == "actDataGroupingHeader") {
-        type = DataGroupHeader;
-    }
-    if (sender()->objectName() == "actDataGroupingFooter") {
-        type = DataGroupFooter;
-    }
+void MainWindow::addBand()
+{
+    BandType type = Undefined;
+    if (sender()->objectName() == "actRepTitle") type = ReportTitle;
+    if (sender()->objectName() == "actReportSummary") type = ReportSummary;
+    if (sender()->objectName() == "actPageHeader") type = PageHeader;
+    if (sender()->objectName() == "actPageFooter") type = PageFooter;
+    if (sender()->objectName() == "actMasterData") type = MasterData;
+    if (sender()->objectName() == "actMasterFooter") type = MasterFooter;
+    if (sender()->objectName() == "actMasterHeader") type = MasterHeader;
+    if (sender()->objectName() == "actDataGroupingHeader") type = DataGroupHeader;
+    if (sender()->objectName() == "actDataGroupingFooter") type = DataGroupFooter;
 
     ui->actSelect_tool->setChecked(true);
-    QAction *action = qobject_cast<QAction *>(sender());
-    action->setEnabled(false);
     ui->actSaveReport->setEnabled(true);
 
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-    if (repPage != 0) {
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+    if (repPage != nullptr) {
         repPage->m_addBand(type, bandMenu);
         enableAdding();
     }
+
+    checkAddBandPermission();
 }
 
-void MainWindow::addField(FieldType type) {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( ui->tabWidget->currentIndex() ));
+void MainWindow::checkAddBandPermission()
+{
+    this->actRepTitle->setEnabled(false);
+    this->actReportSummary->setEnabled(false);
+    this->actPageHeader->setEnabled(false);
+    this->actPageFooter->setEnabled(false);
+    this->actMasterData->setEnabled(false);
+    this->actMasterFooter->setEnabled(false);
+    this->actMasterHeader->setEnabled(false);
+    this->actDataGroupingHeader->setEnabled(false);
+    this->actDataGroupingFooter->setEnabled(false);
+
+    int cntRT  = 0;
+    int cntRS  = 0;
+    int cntPH  = 0;
+    int cntPF  = 0;
+    int cntMD  = 0;
+    int cntMF  = 0;
+    int cntMH  = 0;
+    int cntDGH = 0;
+    int cntDGF = 0;
+
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget(ui->tabWidget->currentIndex()));
+    auto allReportBand = repPage->getReportBands();
+
+    for (auto &band : allReportBand) {
+        if (band->bandType == ReportTitle) cntRT++;
+        if (band->bandType == ReportSummary) cntRS++;
+        if (band->bandType == PageHeader) cntPH++;
+        if (band->bandType == PageFooter) cntPF++;
+        if (band->bandType == MasterData) cntMD++;
+        if (band->bandType == MasterFooter) cntMF++;
+        if (band->bandType == MasterHeader) cntMH++;
+        if (band->bandType == DataGroupHeader) cntDGH++;
+        if (band->bandType == DataGroupFooter) cntDGF++;
+    }
+
+    if (cntRT < 1) this->actRepTitle->setEnabled(true);
+    if (cntRS < 1) this->actReportSummary->setEnabled(true);
+    if (cntPH < 1) this->actPageHeader->setEnabled(true);
+    if (cntPF < 1) this->actPageFooter->setEnabled(true);
+    if (cntMD < 6) this->actMasterData->setEnabled(true);
+    if (cntMF < 1) this->actMasterFooter->setEnabled(true);
+    if (cntMH < 6) this->actMasterHeader->setEnabled(true);
+    if (cntDGH < 1) this->actDataGroupingHeader->setEnabled(true);
+    if (cntDGF < 3) this->actDataGroupingFooter->setEnabled(true);
+}
+
+void MainWindow::addField(FieldType type)
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( ui->tabWidget->currentIndex() ));
     repPage->scene->newFieldType(type);
     repPage->scene->newFieldMenu(contMenu);
     repPage->scene->setMode(GraphicsScene::Mode::DrawContainer);
-    ui->actSelect_tool->setChecked(true);
-    ui->actSaveReport->setEnabled(true);
+    //убрать? ui->actSelect_tool->setChecked(true);
+    //убрать? ui->actSaveReport->setEnabled(true);
 }
 
-void MainWindow::addDraw() {
+void MainWindow::addDraw()
+{
     FieldType fieldType = Text;
-    if (sender()->objectName() == "actDrawRectangle") {
+    if (sender()->objectName() == "actDrawRectangle")
         fieldType = Reactangle;
-    }
-    if (sender()->objectName() == "actDrawRoundedRectangle") {
+    if (sender()->objectName() == "actDrawRoundedRectangle")
         fieldType = RoundedReactangle;
-    }
-    if (sender()->objectName() == "actDrawEllipse") {
+    if (sender()->objectName() == "actDrawEllipse")
         fieldType = Circle;
-    }
-    if (sender()->objectName() == "actDrawTriangle") {        
+    if (sender()->objectName() == "actDrawTriangle")
         fieldType = Triangle;
-    }
-    if (sender()->objectName() == "actDrawRhombus") {
+    if (sender()->objectName() == "actDrawRhombus")
         fieldType = Rhombus;
-    }
 
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( ui->tabWidget->currentIndex() ));
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->widget( ui->tabWidget->currentIndex() ));
     repPage->scene->newFieldType(fieldType);
 
     if (QtRPT::getDrawingFields().contains(fieldType)) {
@@ -2570,64 +3012,62 @@ void MainWindow::addDraw() {
             repPage->scene->newLineArrowEnd = true;
         }
     }
-
-    ui->actSelect_tool->setChecked(true);
 }
 
-void MainWindow::showPreview() {
-    QtRPT *report = new QtRPT(this);
-    if (fileName.isEmpty()) {
-        report->loadReport(*xmlDoc);
-    } else {
-        report->loadReport(fileName);
+void MainWindow::showPreview()
+{
+    for (auto &plugin : plugins) {
+        auto echoInterface = qobject_cast<CustomInterface *>(plugin);
+
+        int index = plugin->metaObject()->indexOfClassInfo("ShowReport");
+        if (QString(plugin->metaObject()->classInfo(index).value()) == "true") {
+            if (echoInterface) {
+                // We use plugin's report preview
+                echoInterface->showReport(xmlDoc);
+                return;
+            }
+        }
     }
-    report->printExec();
+
+    auto report = QtRPT::createSPtr(this);
+
+    if (fileName.isEmpty())
+        report->loadReport(*xmlDoc);
+    else
+        report->loadReport(fileName);
+
+    if (pdfName.isEmpty())
+        report->printExec();
+    else
+        report->printPDF(pdfName, false);
 }
 
-void MainWindow::addFieldText() {
-    addField(Text);
-}
-
-void MainWindow::addFieldTextRich() {
-    addField(TextRich);
-}
-
-void MainWindow::addFieldCrossTab() {
-    addField(CrossTab);
-}
-
-void MainWindow::addBarcode() {
-    addField(Barcode);
-}
-
-void MainWindow::AddPicture() {
-    addField(Image);
-}
-
-void MainWindow::addDiagram() {
-    addField(Diagram);
-}
-
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *event)
+{
     Q_UNUSED(event);
+
     if (ui->actSaveReport->isEnabled()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(this, tr("Saving"),tr("The report was changed.\nSave the report?"),
-                                         QMessageBox::Yes | QMessageBox::No);
+                                         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (reply == QMessageBox::Yes)
             saveReport();
+        else if (reply == QMessageBox::Cancel)
+            event->ignore();
     }
 }
 
-void MainWindow::changeZoom() {
-    RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+void MainWindow::changeZoom()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
     repPage->setScale(cbZoom->currentText());
 }
 
-void MainWindow::sceneClick() {
+void MainWindow::sceneClick()
+{
     if (ui->actMagnifying->isChecked()) {
         qreal scale;
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+        auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
         if (QApplication::keyboardModifiers() != Qt::ShiftModifier) scale = repPage->getScale()+0.25;
         else scale = repPage->getScale()-0.25;
         cbZoom->setEditText(QString::number(scale*100)+"%");
@@ -2635,14 +3075,18 @@ void MainWindow::sceneClick() {
     }
 }
 
-bool MainWindow::eventFilter(QObject *obj, QEvent *e) {
+bool MainWindow::eventFilter(QObject *obj, QEvent *e)
+{
     if (e->type() == QEvent::Wheel ) {
         QWheelEvent *m = static_cast< QWheelEvent * >( e );
-        if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
+        if (QApplication::keyboardModifiers() == Qt::ControlModifier && obj->objectName() == "RepScrollArea") {
             qreal scale;
-            RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-            if (m->delta() > 0 ) scale = repPage->getScale()+0.25;
-            else scale = repPage->getScale()-0.25;
+            auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+            if (m->angleDelta().y() > 0 )
+                scale = repPage->getScale()+0.25;
+            else
+                scale = repPage->getScale()-0.25;
+
             cbZoom->setEditText(QString::number(scale*100)+"%");
             repPage->setScale(cbZoom->currentText());
             return true;
@@ -2674,9 +3118,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *e) {
         }
     }
     if (e->type() == QEvent::Leave) {
-        if (obj->objectName() == "RepScrollArea") {
+        if (obj->objectName() == "RepScrollArea")
             setCursor(Qt::ArrowCursor);
-        }
     }
     if (e->type() == QMouseEvent::MouseButtonPress) {
         if (!ui->actMagnifying->isChecked()) {
@@ -2689,9 +3132,10 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *e) {
 }
 
 //Process click on CheckBox
-void MainWindow::itemChanged(QTreeWidgetItem *item, int column) {
+void MainWindow::itemChanged(QTreeWidgetItem *item, int column)
+{
     if (column == 1 ) {
-        if (selectedGItem() == 0) return;
+        if (selectedGItem() == nullptr) return;
             QVariant v;
             Command command = (Command)item->data(1,Qt::UserRole).toInt();
             switch (command) {
@@ -2700,6 +3144,7 @@ void MainWindow::itemChanged(QTreeWidgetItem *item, int column) {
                 case ArrowStart:
                 case ArrowEnd:
                 case AutoHeight:
+                case RenderingMode:
                 case StartNewPage:
                 case ShowInGroup:
                 case StartNewNumeration:
@@ -2724,54 +3169,89 @@ void MainWindow::itemChanged(QTreeWidgetItem *item, int column) {
     }
 }
 
-//Change param in paramTree
-void MainWindow::closeEditor() {
-    QTreeWidgetItem *item = ui->treeParams->currentItem();
-    if (item == 0) return;
-    if (selectedGItem() == 0) return;
-        QVariant v;
-        Command command = (Command)item->data(1,Qt::UserRole).toInt();
-        switch (command) {
-            case Name:
-            case Left:
-            case Top:            
-            case Height:
-            case Length:
-            case AligmentH:
-            case AligmentV:
-            case BarcodeType:
-            case BarcodeFrameType:
-            case FrameWidth:
-            case FontName:
-            case FontSize: {
-                v = item->text(1);
-                ReportBand *rep = static_cast<ReportBand *>(selectedGItem());
-                if (rep->type() == ItemType::GBand && command == Height && rep != 0)
-                    v = item->text(1).toInt()+rep->titleHeight;
-                break;
-            }
-            case Width: {
-                v = item->text(1).toInt()+1;
-                break;
-            }
-            default: {
-                return;
-            }
-        }
-    execButtonCommand(command,v);
+void MainWindow::currentParamChanged(QTreeWidgetItem *current,QTreeWidgetItem *previous)
+{
+    Q_UNUSED(current);
+    applyParam(previous);
 }
 
-void MainWindow::clipBoard() {
+//Change param in paramTree
+void MainWindow::closeEditor()
+{
+    auto item = ui->treeParams->currentItem();
+    applyParam(item);
+}
+
+void MainWindow::applyParam(QTreeWidgetItem *item)
+{
+    if (item == nullptr) return;
+    if (selectedGItem() == nullptr) return;
+
+    QVariant v;
+    auto command = static_cast<Command>(item->data(1,Qt::UserRole).toInt());
+    switch (command) {
+        case Name: {
+            if (checkName(item->text(1))) {
+                auto field = static_cast<GraphicsBox *>(selectedGItem());
+                auto delegate = static_cast<EditorDelegate *>(sender());
+                if (delegate != nullptr) {
+                    delegate->blockSignals(true);
+
+                    QString str = QString(tr("The name '%1' already used!")).arg(item->text(1));
+                    QMessageBox::warning(this, tr("Error"), str);
+
+                    item->setText(1, field->objectName());
+                    delegate->blockSignals(false);
+                }
+
+                return;
+            } else {
+                v = item->text(1);
+            }
+            break;
+        }
+        case TextRotate:
+        case DSName:
+        case GroupFields:
+        case GroupLevel:
+        case Left:
+        case Top:
+        case Height:
+        case Length:
+        case PaddingX:
+        case PaddingY:
+        case AligmentH:
+        case AligmentV:
+        case BarcodeType:
+        case BarcodeFrameType:
+        case FrameWidth:
+        case FontName:
+        case FontSize: {
+            v = item->text(1);
+            break;
+        }
+        case Width: {
+            v = item->text(1).toInt()+1;
+            break;
+        }
+        default:
+            return;
+    }
+    execButtonCommand(command, v);
+}
+
+void MainWindow::clipBoard()
+{
+    auto repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
+
     if (sender() == ui->actCopy) {
         pasteCopy = true;
         cloneContList->clear();
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-        for(auto item : repPage->scene->items()) {
+        for (auto &item : repPage->scene->items()) {
             if (item->type() == ItemType::GLine || item->type() == ItemType::GBox) {
-                GraphicsHelperClass *helper = gItemToHelper(item);
-                if (helper->helperIsSelected()) {
+                auto helper = gItemToHelper(item);
+                if (helper->helperIsSelected())
                     cloneContList->append(item);
-                }
             }
         }
         ui->actPaste->setEnabled(true);
@@ -2779,10 +3259,9 @@ void MainWindow::clipBoard() {
     if (sender() == ui->actCut) {
         pasteCopy = false;
         cloneContList->clear();
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-        for(auto item : repPage->scene->items()) {
+        for (auto &item : repPage->scene->items()) {
             if (item->type() == ItemType::GLine || item->type() == ItemType::GBox) {
-                GraphicsHelperClass *helper = gItemToHelper(item);
+                auto helper = gItemToHelper(item);
                 if (helper->helperIsSelected()) {
                     cloneContList->append(item);
                     item->setVisible(false);
@@ -2793,26 +3272,28 @@ void MainWindow::clipBoard() {
     }
     if (sender() == ui->actPaste) {
         if (cloneContList->isEmpty()) return;
-        RepScrollArea *repPage = qobject_cast<RepScrollArea *>(ui->tabWidget->currentWidget());
-        GraphicsScene *scene = repPage->scene;
+        auto scene = repPage->scene;
         ReportBand *band = nullptr;
-        if (scene->selectedItems().size() > 0) {
-            QGraphicsItem *item = scene->selectedItems().at(0);
-            if (item->type() == ItemType::GBand) {
-                band = static_cast<ReportBand *>(item);
-            } else{
-                band = static_cast<ReportBand *>(item->parentItem());
-            }
+        if (!scene->selectedItems().isEmpty()) {
+            auto item = scene->selectedItems().at(0);
+            if (item->type() == ItemType::GBand)
+                band = static_cast<ReportBand*>(item);
+            else
+                band = static_cast<ReportBand*>(item->parentItem());
         }
+        if (band == nullptr) return;
+        band->setSelected(false);
 
-        for (int i=0; i<cloneContList->size(); i++) {
-            cloneContList->at(i)->setSelected(false);
-            if (cloneContList->at(i)->type() == ItemType::GBox) {
-                GraphicsBox *box = static_cast<GraphicsBox *>(cloneContList->at(i));
+        QList<QGraphicsItem*> newContList;
+        ui->treeWidget->setSelectionMode(QAbstractItemView::MultiSelection);
+        for (auto &item : *cloneContList) {
+            item->setSelected(false);
+            if (item->type() == ItemType::GBox) {
+                auto box = static_cast<GraphicsBox *>(item);
                 box->setSelected(false);
 
                 if (pasteCopy == true) {
-                    GraphicsBox *newBox = box->clone();
+                    auto newBox = box->clone();
                     generateName(newBox);
                     scene->addItem(newBox);
                     newBox->setParentItem(band);
@@ -2820,23 +3301,25 @@ void MainWindow::clipBoard() {
                     newBox->setSelected(true);
                     newBox->setMenu(contMenu);
                     newBox->setParentItem(band);
+                    newContList << newBox;
                 } else {
                     box->setParentItem(band);
                     box->setVisible(true);
                     box->setSelected(true);
-                    QTreeWidgetItem *tItem = box->itemInTree->parent()->takeChild(box->itemInTree->parent()->indexOfChild(box->itemInTree));
+                    auto tItem = box->itemInTree->parent()->takeChild(box->itemInTree->parent()->indexOfChild(box->itemInTree));
                     band->itemInTree->addChild(tItem);
                     band->itemInTree->setExpanded(true);
                 }
             }
-            if (cloneContList->at(i)->type() == ItemType::GLine) {
-                GraphicsLine *line = static_cast<GraphicsLine *>(cloneContList->at(i));
+            if (item->type() == ItemType::GLine) {
+                auto line = static_cast<GraphicsLine *>(item);
                 line->setSelected(false);
 
                 if (pasteCopy == true) {
-                    GraphicsLine *newLine = line->clone();
+                    auto newLine = line->clone();
                     generateName(newLine);
                     scene->addItem(newLine);
+                    newLine->setParentItem(band);
                     repPage->newFieldTreeItem(newLine);
                     newLine->setSelected(true);
                     newLine->setMenu(contMenu);
@@ -2852,30 +3335,50 @@ void MainWindow::clipBoard() {
             }
         }
 
+        for (auto &item : newContList) {
+            auto box = static_cast<GraphicsBox *>(item);
+            box->setSelected(true);
+        }
+
         showParamState();
+
+        ui->treeWidget->setSelectionMode(QAbstractItemView::SingleSelection);
         ui->actSaveReport->setEnabled(true);
     }
 }
 
-MainWindow::~MainWindow() {
-    delete xmlDoc;
-    xmlDoc = 0;
+MainWindow::~MainWindow()
+{
+    while (!pluginsLoaders.isEmpty()) {
+        auto pluginLoader = pluginsLoaders.takeFirst();
+        pluginLoader->unload();
+        delete pluginLoader;
+    }
+
     delete ui;
 }
 
-MainWindow *getMW(){
-    MainWindow *mw = nullptr;
-    for(auto widget : qApp->topLevelWidgets())
-        if(widget->inherits("QMainWindow")) {
-            mw = qobject_cast<MainWindow *>(widget);
-        }
-    return mw;
-}
-
-void MainWindow::mousePos(QPointF pos) {
+void MainWindow::mousePos(QPointF pos)
+{
     m_status1->setText(QString("X: %1 Y: %2").arg(pos.x()).arg(pos.y()));
 }
 
-void MainWindow::setReportChanged() {
+void MainWindow::setReportChanged()
+{
     ui->actSaveReport->setEnabled(true);
+}
+
+QStringList MainWindow::getWords()
+{
+    return m_words;
+}
+
+void MainWindow::setWords(QStringList words)
+{
+    m_words = words;
+}
+
+QStringList MainWindow::getArguments()
+{
+    return m_args;
 }

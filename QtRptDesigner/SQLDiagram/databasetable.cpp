@@ -23,7 +23,9 @@
 #include "columnlist.h"
 #include "boxsidehub.h"
 
-DatabaseTable::DatabaseTable(DiagramItem *parent) : DiagramObject(parent) {
+DatabaseTable::DatabaseTable(DiagramItem *parent)
+: DiagramObject(parent)
+{
 	setFlag(ItemIsMovable);
 	setFlag(ItemIsSelectable);
 #if QT_VERSION >= 0x040600
@@ -39,11 +41,13 @@ DatabaseTable::DatabaseTable(DiagramItem *parent) : DiagramObject(parent) {
     connect(m_columnList, SIGNAL(columnChanged(int)), this, SLOT(updateLayout()));
 }
 
-QRectF DatabaseTable::boundingRect() const {
+QRectF DatabaseTable::boundingRect() const
+{
 	return m_outerRect;
 }
 
-QList<Column *> DatabaseTable::primaryKeys() const {
+QList<Column *> DatabaseTable::primaryKeys() const
+{
 	QList<Column *> result;
     for(Column *column : m_columnList->columns())
 		if (column->isPrimaryKey())
@@ -51,7 +55,8 @@ QList<Column *> DatabaseTable::primaryKeys() const {
 	return result;
 }
 
-void DatabaseTable::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
+void DatabaseTable::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
 	Q_UNUSED(option);
 	Q_UNUSED(widget);
 
@@ -92,7 +97,7 @@ void DatabaseTable::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
 	QPointF colPos = m_firstColPos;
 	QPointF leftSizePos = colPos - QPointF(m_leftSideWidth, 0);
 	int i = 0;
-    for(Column *column : m_columnList->columns()) {
+    for (Column *column : m_columnList->columns()) {
         bool isBold = column->isRequired();
         painter->setPen( isBold ? reqPen : pen);
 		painter->setFont(isBold
@@ -113,41 +118,46 @@ void DatabaseTable::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
 	painter->drawRect(m_outerRect);
 }
 
-void DatabaseTable::setName(const QString &name) {
+void DatabaseTable::setName(const QString &name)
+{
 	m_name = name;
 	updateLayout();
 	emit propertyChanged("name", name);
 }
 
-void DatabaseTable::setColor(const QColor &color) {
+void DatabaseTable::setColor(const QColor &color)
+{
 	m_color = color;
 	updateLayout();
 	emit propertyChanged("color", color);
 }
 
-void DatabaseTable::setInitialName(int counter) {
+void DatabaseTable::setInitialName(int counter)
+{
 	setName(counter > 1 ? QString("table_%1").arg(counter) : "table");
 }
 
-QVariant DatabaseTable::itemChange(GraphicsItemChange change, const QVariant &value) {
+QVariant DatabaseTable::itemChange(GraphicsItemChange change, const QVariant &value)
+{
 	if (change == ItemSceneHasChanged) {
 		updateLayout();
 	}
 	if (change == ItemPositionChange) {
-		DiagramDocument *model = qobject_cast<DiagramDocument *>(scene());
+        auto model = qobject_cast<DiagramDocument *>(scene());
 		if (model) {
 			emit model->itemMoved(this);
 		}
 	}
 	if (change == ItemPositionHasChanged) {
-		DiagramDocument *model = qobject_cast<DiagramDocument *>(scene());
+        auto model = qobject_cast<DiagramDocument *>(scene());
 		if (model)
 			emit model->itemHasMoved(this);
 	}
 	return QGraphicsItem::itemChange(change, value);
 }
 
-void DatabaseTable::updateLayout() {
+void DatabaseTable::updateLayout()
+{
 	if (!scene())
 		return;
 
@@ -161,18 +171,27 @@ void DatabaseTable::updateLayout() {
 	boldFont.setBold(true);
 	QFontMetricsF boldFontMetrics(boldFont);
 
-	qreal spaceWidth = fontMetrics.width(' ');
-	qreal nameWidth = fontMetrics.width(m_name);
+    #if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
+        qreal spaceWidth = fontMetrics.horizontalAdvance(' ');
+        qreal nameWidth = fontMetrics.horizontalAdvance(m_name);
+        m_leftSideWidth = fontMetrics.horizontalAdvance("PK");
+    #else
+        qreal spaceWidth = fontMetrics.width(' ');
+        qreal nameWidth = fontMetrics.width(m_name);
+        m_leftSideWidth = fontMetrics.width("PK");
+    #endif
 	qreal height = fontMetrics.height();
-	
-	m_leftSideWidth = fontMetrics.width("PK");
 
 	qreal width = nameWidth + spaceWidth * 2;
 
 	qreal maxColumnWidth = 0;
     m_columnLabels.clear();
-    for(Column *column : m_columnList->columns()) {
-		qreal columnWidth = column->isRequired() ? boldFontMetrics.width(column->name()) : fontMetrics.width(column->name());
+    for (Column *column : m_columnList->columns()) {
+        #if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
+            qreal columnWidth = column->isRequired() ? boldFontMetrics.horizontalAdvance(column->name()) : fontMetrics.horizontalAdvance(column->name());
+        #else
+            qreal columnWidth = column->isRequired() ? boldFontMetrics.width(column->name()) : fontMetrics.width(column->name());
+        #endif
 		maxColumnWidth = qMax(maxColumnWidth, columnWidth);
 		qreal columnLeftSideWidth = 0;
 		QStringList label;
@@ -184,12 +203,22 @@ void DatabaseTable::updateLayout() {
 		}
 		QString labelStr = label.join(",");
 		m_columnLabels << labelStr;
-		if (column->isRequired()) {
-			columnLeftSideWidth = boldFontMetrics.width(labelStr);
-		}
-		else {
-			columnLeftSideWidth = fontMetrics.width(labelStr);
-		}
+
+        #if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
+            if (column->isRequired()) {
+                columnLeftSideWidth = boldFontMetrics.horizontalAdvance(labelStr);
+            }
+            else {
+                columnLeftSideWidth = fontMetrics.horizontalAdvance(labelStr);
+            }
+        #else
+            if (column->isRequired()) {
+                columnLeftSideWidth = boldFontMetrics.width(labelStr);
+            }
+            else {
+                columnLeftSideWidth = fontMetrics.width(labelStr);
+            }
+        #endif
 		m_leftSideWidth = qMax(m_leftSideWidth, columnLeftSideWidth);
 	}
 	m_leftSideWidth += spaceWidth * 2;
@@ -208,17 +237,19 @@ void DatabaseTable::updateLayout() {
 	update();
 }
 
-void DatabaseTable::setColumns(ColumnList *columnList) {
-    while (m_columnList->columnCount() >0 ) {
+void DatabaseTable::setColumns(ColumnList *columnList)
+{
+    while (m_columnList->columnCount() >0 )
         m_columnList->removeColumn(0);
-    }
-    for (int i=0; i<columnList->columnCount(); i++) {
+
+    for (int i=0; i<columnList->columnCount(); i++)
         m_columnList->appendColumn(columnList->column(i));
-    }
 }
 
-void DatabaseTable::loadFromXml(QDomElement element, DiagramDocument *document) {
+void DatabaseTable::loadFromXml(QDomElement element, DiagramDocument *document)
+{
     Q_UNUSED(document);
+
     DiagramItem::loadFromXml(element);
     setName(element.attribute("name"));
 
@@ -234,7 +265,8 @@ void DatabaseTable::loadFromXml(QDomElement element, DiagramDocument *document) 
     }
 }
 
-void DatabaseTable::saveToXml(QDomElement element, QDomDocument doc) {
+void DatabaseTable::saveToXml(QDomElement element, QDomDocument doc)
+{
     DiagramItem::saveToXml(element, doc);
     element.setAttribute("name", name());
 
@@ -248,7 +280,8 @@ void DatabaseTable::saveToXml(QDomElement element, QDomDocument doc) {
     }
 }
 
-void DatabaseTable::getSelectedColumns(QString &value) {
+void DatabaseTable::getSelectedColumns(QString &value)
+{
     int selectedCount = 0;
     QString str;
     for (int i=0; i < columnList()->columns().count(); i++) {
@@ -259,6 +292,7 @@ void DatabaseTable::getSelectedColumns(QString &value) {
             str = str + name()+"."+columnList()->column(i)->name();
         }
     }
+
     if (columnList()->columns().count() == selectedCount)
         str = name()+".*";
 

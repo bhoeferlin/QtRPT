@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef PROPERTYCLASS_H
-#define PROPERTYCLASS_H
+#pragma once
 
 #include <QObject>
 #include <QMenu>
@@ -32,6 +31,7 @@ limitations under the License.
 #include "qtrptnamespace.h"
 #include "GraphicsNameSpace.h"
 #include <qtrpt.h>
+#include "CornerGrabber.h"
 
 class GraphicsHelperClass : public QObject
 {
@@ -42,8 +42,7 @@ class GraphicsHelperClass : public QObject
     Q_PROPERTY(QColor BgColor READ getBackgroundColor WRITE setBackgroundColor)
     Q_PROPERTY(QString GrpName READ getGroupName WRITE setGroupName)
 public:
-    explicit GraphicsHelperClass(QObject *parent = 0);
-    ~GraphicsHelperClass();
+    explicit GraphicsHelperClass(QObject *parent = nullptr);
     void setObjectName(const QString &name);
     bool getDrawingState() {return m_drawingState;}
     void setDrawingState(bool value) {m_drawingState = value;}
@@ -64,8 +63,9 @@ public:
     bool borderIsCheck(Command command);
     void setBorder(Command command, QVariant values, bool yesFrame = false);
     Qt::PenStyle borderStyle() {return m_borderStyle;}
+    void setBorderStyle(Qt::PenStyle value) {m_borderStyle = value;}
     virtual void loadParamFromXML(QDomElement e);
-    virtual QDomElement saveParamToXML(QDomDocument *xmlDoc);
+    virtual QDomElement saveParamToXML(QSharedPointer<QDomDocument> xmlDoc);
     QString getGroupName() {return m_groupName;}
     void setGroupName(QString value) {m_groupName = value;}
     bool helperIsSelected();
@@ -75,12 +75,20 @@ public:
     friend QDataStream &operator>>(QDataStream &stream, GraphicsHelperClass &obj);
 
 protected:
+    QColor m_outterborderColor; // the hover event handlers will toggle this between red and black
     QColor m_borderColor;
     QColor m_backgroundColor;
     QColor m_fontColor;
-    QMenu *m_menu;
+    QVector<SPtrCorner> m_corners;
+    QMenu* m_menu;
     QtRptName::FieldType m_type;
     QString setPenStyle(Qt::PenStyle style);
+    QPen m_outterborderPen; // the pen is used to paint the red/black border
+    int m_XcornerGrabBuffer;
+    int m_YcornerGrabBuffer;
+    QPointF m_location;
+    QPointF m_dragStart;
+    void destroyCorners();
 
 private:
     bool m_drawingState;
@@ -94,7 +102,6 @@ private:
     QString m_groupName;
 
 signals:
-    void itemDeleting(QTreeWidgetItem *);
     void itemRemoving();
 
 public slots:
@@ -103,5 +110,3 @@ public slots:
     void moveBack();
 
 };
-
-#endif // PROPERTYCLASS_H

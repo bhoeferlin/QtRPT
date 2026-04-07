@@ -400,15 +400,25 @@ int dm200encode(struct zint_symbol *symbol, unsigned char source[], unsigned cha
 				if(next_mode != DM_ASCII) {
 					switch(next_mode) {
 						case DM_C40: target[tp] = 230; tp++; concat(binary, " ");
-							if(debug) printf("C40 "); break;
+                            if(debug)
+                                printf("C40 ");
+                        break;
 						case DM_TEXT: target[tp] = 239; tp++; concat(binary, " ");
-							if(debug) printf("TEX "); break;
+                            if(debug)
+                                printf("TEX ");
+                        break;
 						case DM_X12: target[tp] = 238; tp++; concat(binary, " ");
-							if(debug) printf("X12 "); break;
+                            if(debug)
+                                printf("X12 ");
+                        break;
 						case DM_EDIFACT: target[tp] = 240; tp++; concat(binary, " ");
-							if(debug) printf("EDI "); break;
+                            if(debug)
+                                printf("EDI ");
+                        break;
 						case DM_BASE256: target[tp] = 231; tp++; concat(binary, " ");
-							if(debug) printf("BAS "); break;
+                            if(debug)
+                                printf("BAS ");
+                        break;
 					}
 				} else {
 					if(source[sp] > 127) {

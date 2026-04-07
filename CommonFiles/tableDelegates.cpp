@@ -1,5 +1,5 @@
 /***********************
-*   Aleksey Osipov     *
+*   Oleksii Osypov     *
 *  aliks-os@ukr.net    *
 *     2011-2015        *
 ************************/
@@ -293,7 +293,7 @@ void ComboboxDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionV
 
 QVariant ComboboxDelegate::getValue(QString key) {
     ComboValues::const_iterator iter;
-    for (iter=m_comboValues.begin(); iter != m_comboValues.end(); iter++) {
+    for (iter = m_comboValues.begin(); iter != m_comboValues.end(); iter++) {
         if ((*iter).first == key)
             return (*iter).second;
     }

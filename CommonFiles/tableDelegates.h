@@ -1,5 +1,5 @@
 /***********************
-*   Aleksey Osipov     *
+*   Oleksii Osypov     *
 *  aliks-os@ukr.net    *
 *     2011-2015        *
 ************************/

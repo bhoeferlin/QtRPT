@@ -1,5 +1,27 @@
-#ifndef GRAPHICSSCENE_H
-#define GRAPHICSSCENE_H
+/*
+Name: QtRpt
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
+E-mail: aliks-os@ukr.net
+Web-site: http://www.aliks-os.tk
+
+Copyright 2012-2025 Oleksii Osypov
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+#pragma once
 
 #include <QUndoStack>
 #include <QGraphicsScene>
@@ -22,7 +44,7 @@ class GraphicsScene : public QGraphicsScene
     Q_OBJECT
 public:
     enum Mode {NoMode, SelectObject, DrawLine, DrawContainer};
-    GraphicsScene(QObject* parent = 0);
+    GraphicsScene(QObject* parent = nullptr);
     void setMode(Mode mode);
     void addItem(QGraphicsItem * item);
     QUndoStack *undoStack() const { return m_undoStack; }
@@ -45,6 +67,9 @@ public:
     void newFieldType(QtRptName::FieldType value) {m_newFieldType = value;}
     void newFieldMenu(QMenu *menu) {m_newFieldMenu = menu;}
     void removeItem(QGraphicsItem *item);
+    void itemSelect(QGraphicsItem *item);
+    QList<QGraphicsItem*> itemsSelected() {return m_selectedItems;}
+    QList<ItemsAndParams> itemsMoved() {return m_movedItems;}
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -63,10 +88,7 @@ private:
     Mode sceneMode;
     QtRptName::FieldType m_newFieldType;
     QMenu *m_newFieldMenu;
-
-    //QGraphicsPixmapItem *m_backgroundItem;
-    //QString m_backgroundPath;
-
+    QList<QGraphicsItem*> m_selectedItems;
     bool m_trackingMoves;
     QList<ItemsAndParams> m_movedItems;
 
@@ -78,9 +100,6 @@ signals:
     void sceneModeChanged(QGraphicsItem *item, GraphicsScene::Mode mode);
     void itemSelected(QGraphicsItem *item);
     void itemAdded(QGraphicsItem *item);
-    void itemDeleting(QGraphicsItem *item, QTreeWidgetItem *);
     void itemResized(QGraphicsItem *item);
     void sceneClick();
 };
-
-#endif // GRAPHICSSCENE_H

@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +25,9 @@ limitations under the License.
 #include "ui_exampledlg1.h"
 #include <QDebug>
 
-ExampleDlg1::ExampleDlg1(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg1) {
+ExampleDlg1::ExampleDlg1(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg1)
+{
     ui->setupUi(this);
 
     ui->dtp->setDate(QDate::currentDate());
@@ -48,8 +51,10 @@ ExampleDlg1::ExampleDlg1(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
     }
 }
 
-void ExampleDlg1::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg1::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     Q_UNUSED(reportPage);
+
     if (paramName == "customer")
         paramValue = ui->edtCustomer->text();
     if (paramName == "date")
@@ -57,53 +62,67 @@ void ExampleDlg1::setValue(const int recNo, const QString paramName, QVariant &p
     if (paramName == "NN")
         paramValue = recNo+1;
     if (paramName == "Goods") {
-        if (ui->tableWidget->item(recNo,0) == 0) return;
+        if (ui->tableWidget->item(recNo,0) == nullptr)
+            return;
         paramValue = ui->tableWidget->item(recNo,0)->text();
     }
     if (paramName == "Quantity") {
-        if (ui->tableWidget->item(recNo,1) == 0) return;
+        if (ui->tableWidget->item(recNo,1) == nullptr)
+            return;
         paramValue = ui->tableWidget->item(recNo,1)->text();
     }
     if (paramName == "Price") {
-        if (ui->tableWidget->item(recNo,2) == 0) return;
+        if (ui->tableWidget->item(recNo,2) == nullptr)
+            return;
         paramValue = ui->tableWidget->item(recNo,2)->text();
     }
     if (paramName == "Sum") {
-        if (ui->tableWidget->item(recNo,3) == 0) return;
+        if (ui->tableWidget->item(recNo,3) == nullptr)
+            return;
         paramValue = ui->tableWidget->item(recNo,3)->text();
     }
 }
 
-void ExampleDlg1::setValueImage(const int recNo, const QString paramName, QImage &paramValue, const int reportPage) {
+void ExampleDlg1::setValueImage(const int recNo, const QString paramName, QImage &paramValue, const int reportPage)
+{
     Q_UNUSED(recNo);
     Q_UNUSED(reportPage);
+
     if (paramName == "image") {
-        QImage *image = new QImage(QCoreApplication::applicationDirPath()+"/pdf.png");
+        auto image = new QImage(QCoreApplication::applicationDirPath()+"/pdf.png");
         paramValue = *image;
     }
 }
 
-void ExampleDlg1::print() {
+void ExampleDlg1::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
     #endif
 
     QString fileName = dir.absolutePath()+"/examples_report/example1.xml";
-    report = new QtRPT(this);
+    auto report = new QtRPT(this);
     report->setBackgroundImage(QPixmap(dir.absolutePath()+"/examples_report/qt_background_portrait.png"));
-    report->recordCount << ui->tableWidget->rowCount();
-    if (report->loadReport(fileName) == false) {
-        qDebug()<<"Report file not found";
-    }
+    report->loadReport(fileName);
+
     QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
     QObject::connect(report, SIGNAL(setValueImage(const int, const QString, QImage&, const int)),
                      this, SLOT(setValueImage(const int, const QString, QImage&, const int)));
+    QObject::connect(report, SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
+
     //report->setCallbackFunc(getReportValue);
     report->printExec(true);
 }
 
-ExampleDlg1::~ExampleDlg1() {
+void ExampleDlg1::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = ui->tableWidget->rowCount();
+}
+
+ExampleDlg1::~ExampleDlg1()
+{
     delete ui;
 }

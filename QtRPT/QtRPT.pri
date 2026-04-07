@@ -1,32 +1,39 @@
-QT       += gui xml script sql
+QT       += gui xml qml sql charts
 
-greaterThan(QT_MAJOR_VERSION, 4){
+greaterThan(QT_MAJOR_VERSION, 4) {
     QT += widgets printsupport
     DEFINES += HAVE_QT5
 }
 
-#DEFINES += NO_BARCODE
+greaterThan(QT_MAJOR_VERSION, 5):
+    greaterThan(QT_MINOR_VERSION, 7):QT += charts
+
+
 include(../CommonFiles/CommonFiles_QtRpt.pri)
 
 INCLUDEPATH += $$PWD
-#INCLUDEPATH += $$PWD/../3rdparty/QtXlsx
-#LIBS += -L$${DEST_DIRECTORY}/lib -lQtXlsx
 
 SOURCES += $$PWD/qtrpt.cpp \
-           $$PWD/RptSql.cpp \
-           $$PWD/RptSqlConnection.cpp \
-           $$PWD/RptFieldObject.cpp \
-           $$PWD/RptBandObject.cpp \
-           $$PWD/RptPageObject.cpp \
-           $$PWD/RptCrossTabObject.cpp
+    $$PWD/RptDsPlugin.cpp \
+    $$PWD/RptSql.cpp \
+    $$PWD/RptFieldObject.cpp \
+    $$PWD/RptBandObject.cpp \
+    $$PWD/RptPageObject.cpp \
+    $$PWD/RptCrossTabObject.cpp \
+    $$PWD/RptScriptEngine.cpp \
+    $$PWD/RptDsInline.cpp \
+    $$PWD/RptDsAbstract.cpp
 HEADERS += $$PWD/qtrpt.h \
-           $$PWD/qtrptnamespace.h \
-           $$PWD/RptSql.h \
-           $$PWD/RptSqlConnection.h \
-           $$PWD/RptFieldObject.h \
-           $$PWD/RptBandObject.h \
-           $$PWD/RptPageObject.h \
-           $$PWD/RptCrossTabObject.h
+    $$PWD/RptDsPlugin.h \
+    $$PWD/qtrptnamespace.h \
+    $$PWD/RptSql.h \
+    $$PWD/RptFieldObject.h \
+    $$PWD/RptBandObject.h \
+    $$PWD/RptPageObject.h \
+    $$PWD/RptCrossTabObject.h \
+    $$PWD/RptScriptEngine.h \
+    $$PWD/RptDsInline.h \
+    $$PWD/RptDsAbstract.h
 
 RESOURCES += \
     $$PWD/../QtRPT/imagesRpt.qrc
