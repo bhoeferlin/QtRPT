@@ -1692,13 +1692,23 @@ QImage QtRPT::sectionValueImage(QString paramName)
 
  \sa printExec(), printHTML(), printXLSX()
  */
-void QtRPT::printPDF(const QString &filePath, bool open)
+void QtRPT::printPDF(const QString& filePath, bool open)
+{
+    QString creator = QString();
+    printPDF(filePath, creator, open);
+}
+
+void QtRPT::printPDF(const QString &filePath, QString& creator, bool open)
 {
 #ifndef QT_NO_PRINTER
     m_printMode = QtRPT::Pdf;
     if (printer == nullptr)
         printer = new QPrinter(m_resolution);
 
+    if (!creator.isNull() && !creator.isEmpty()) {
+        printer->setCreator(creator);
+    }
+        
     printer->setOutputFormat(QPrinter::PdfFormat);
     printer->setOutputFileName(filePath);
     if (painter == nullptr)
@@ -1847,8 +1857,10 @@ void QtRPT::printExec(bool maximum, bool direct, QString printerName)
         //preview.setWindowState(Qt::WindowMaximized); //Qt BUG https://bugreports.qt-project.org/browse/QTBUG-14517
 
         #if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
-        auto screen = QGuiApplication::screenAt(preview.mapToGlobal(QPointF(preview.width()/2,0).toPoint()));
-        QRect geom = screen->availableGeometry();
+        auto screen = QGuiApplication::screenAt(preview.mapToGlobal(QPoint(preview.width() / 2, 0)));
+        if (!screen)
+            screen = QGuiApplication::primaryScreen();
+        QRect geom = screen ? screen->availableGeometry() : QRect(0, 0, 1024, 768);
         #else
         QRect geom = QApplication::desktop()->availableGeometry();
         #endif
@@ -2936,10 +2948,10 @@ void QtRPT::openDataSource(int &pageReportNo)
  */
 
 /*!
- \fn void QtRPT::setChart(RptFieldObject &fieldObject, QChart *chart);
+ \fn void QtRPT::setChart(RptFieldObject &fieldObject, QChart &chart);
   This signal is emitted when QtRPT request a QChart from user application.
   Pass \a fieldObject to user's application as a reference that hold the chart object.
-  Pass \a chart to user's application as a pointer to requested QChart object.
+  Pass \a chart to user's application as a reference to the requested QChart object.
   User should set the appropriate properties of the \a chart.
   Please note, you must have installed Qt 5.8.0 and higher
   This signal is emitted after following signal: setField()

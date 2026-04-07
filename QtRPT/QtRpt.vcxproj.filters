@@ -84,23 +84,17 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="RptSql.h">
+    <QtMoc Include="RptSql.h">
       <Filter>Header Dateien</Filter>
-    </CustomBuild>
-    <CustomBuild Include="imagesRpt.qrc">
+    </QtMoc>
+    <QtRcc Include="imagesRpt.qrc">
       <Filter>Resource Dateien</Filter>
-    </CustomBuild>
-    <CustomBuild Include="qtrpt.h">
+    </QtRcc>
+    <QtMoc Include="qtrpt.h">
       <Filter>Header Dateien</Filter>
-    </CustomBuild>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GeneratedFiles\Debug\moc_RptSql.cpp">
-      <Filter>Generierte Dateien\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_RptSql.cpp">
-      <Filter>Generierte Dateien\Release</Filter>
-    </ClCompile>
     <ClCompile Include="qtrpt.cpp">
       <Filter>Source Dateien</Filter>
     </ClCompile>
@@ -121,15 +115,6 @@
     </ClCompile>
     <ClCompile Include="RptSqlConnection.cpp">
       <Filter>Source Dateien</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\qrc_imagesRpt.cpp">
-      <Filter>Generierte Dateien</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_qtrpt.cpp">
-      <Filter>Generierte Dateien\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_qtrpt.cpp">
-      <Filter>Generierte Dateien\Release</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

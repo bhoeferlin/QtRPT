@@ -46,11 +46,8 @@ limitations under the License.
 #endif
 
 #if QT_VERSION >= 0x60000
-    #include <QtCharts/QChartGlobal>
-    QT_BEGIN_NAMESPACE
-    class QChartView;
-    class QChart;
-    QT_END_NAMESPACE
+    #include <QtCharts/QChart>
+    #include <QtCharts/QChartView>
 #endif
 
 using namespace QtRptName;
@@ -243,7 +240,8 @@ signals:
 public slots:
     void printPreview(QPrinter *printer);
     void printPDF(const QString &filePath, bool open = true);
-    void printHTML(const QString &filePath, bool open = true);
+    void printPDF(const QString& filePath, QString& creator, bool open = true);
+    void printHTML(const QString& filePath, bool open = true);
     void printXLSX(const QString &filePath, bool open = true);
     void printExec(bool maximum = false, bool direct = false, QString printerName = QString());
 
