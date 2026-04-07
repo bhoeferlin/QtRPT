@@ -43,6 +43,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="qtrpt.css" />
     <QtRcc Include="imagesRpt.qrc" />
     <None Include="..\QtRptDesigner\images\QtRptDesigner.ico">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -70,21 +71,25 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\CommonFiles\CommonClasses.h" />
+    <ClInclude Include="..\CommonFiles\numbertoarabicword.h" />
     <ClInclude Include="qtrptnamespace.h" />
     <ClInclude Include="qtrpt_global.h" />
-    <ClInclude Include="RptBandObject.h" />
     <QtMoc Include="qtrpt.h" />
+    <QtMoc Include="RptBandObject.h" />
     <ClInclude Include="RptCrossTabObject.h" />
-    <ClInclude Include="RptDsAbstract.h" />
-    <ClInclude Include="RptDsInline.h" />
-    <ClInclude Include="RptDsPlugin.h" />
-    <ClInclude Include="RptFieldObject.h" />
-    <ClInclude Include="RptPageObject.h" />
-    <ClInclude Include="RptScriptEngine.h" />
+    <QtMoc Include="RptDsAbstract.h" />
+    <QtMoc Include="RptDsInline.h" />
+    <QtMoc Include="RptDsPlugin.h" />
+    <QtMoc Include="RptPageObject.h" />
+    <QtMoc Include="RptFieldObject.h" />
+    <QtMoc Include="RptScriptEngine.h" />
     <ClInclude Include="RptSqlConnection.h" />
     <QtMoc Include="RptSql.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\CommonFiles\CommonClasses.cpp" />
+    <ClCompile Include="..\CommonFiles\numbertoarabicword.cpp" />
     <ClCompile Include="qtrpt.cpp" />
     <ClCompile Include="RptBandObject.cpp" />
     <ClCompile Include="RptCrossTabObject.cpp" />
@@ -128,7 +133,7 @@
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <QtInstall>qt_6_11_0_msvc2022_64</QtInstall>
-    <QtModules>core;gui;qml;widgets;printsupport;sql;xml</QtModules>
+    <QtModules>core;gui;qml;widgets;printsupport;sql;xml;charts</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <QtInstall>Qt5.3.2 x64</QtInstall>
@@ -136,7 +141,7 @@
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtInstall>qt_6_11_0_msvc2022_64</QtInstall>
-    <QtModules>core;gui;qml;widgets;printsupport;sql;xml</QtModules>
+    <QtModules>core;gui;qml;widgets;printsupport;sql;xml;charts</QtModules>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') OR !Exists('$(QtMsBuild)\Qt.props')">
     <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
