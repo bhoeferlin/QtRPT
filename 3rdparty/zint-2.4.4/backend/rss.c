@@ -952,7 +952,7 @@ int general_rules(char field[], char type[])
 	block[0][block_count] = 1;
 	block[1][block_count] = type[0];
 	
-	for(i = 1; i < strlen(type); i++) {
+    for (unsigned int i = 1; i < strlen(type); i++) {
 		current = type[i];
 		last = type[i - 1];
 		
@@ -1059,7 +1059,7 @@ int general_rules(char field[], char type[])
 
 int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_string[])
 { /* Handles all data encodation from section 7.2.5 of ISO/IEC 24724 */
-	int encoding_method, i, mask, j, read_posn, latch, debug = 0, last_mode = ISOIEC;
+    int encoding_method, mask, j, read_posn, latch, debug = 0, last_mode = ISOIEC;
 #ifndef _MSC_VER
 	char general_field[strlen(source)], general_field_type[strlen(source)];
 #else
@@ -1097,7 +1097,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 				char weight_str[7];
 				float weight; /* In kilos */
 			
-				for(i = 0; i < 6; i++) {
+                for (unsigned int i = 0; i < 6; i++) {
 					weight_str[i] = source[20 + i];
 				}
 				weight_str[6] = '\0';
@@ -1148,7 +1148,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 				char weight_str[7];
 				float weight; /* In pounds */
 			
-				for(i = 0; i < 6; i++) {
+                for (unsigned int i = 0; i < 6; i++) {
 					weight_str[i] = source[20 + i];
 				}
 				weight_str[6] = '\0';
@@ -1238,7 +1238,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 	
 	/* Verify that the data to be placed in the compressed data field is all
 	numeric data before carrying out compression */
-	for(i = 0; i < read_posn; i++) {
+    for (int i = 0; i < read_posn; i++) {
 		if((source[i] < '0') || (source[i] > '9')) {
 			if((source[i] != '[') && (source[i] != ']')) {
 				/* Something is wrong */
@@ -1266,7 +1266,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 			mask = mask >> 1;
 		}
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1291,7 +1291,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		int group_val;
 		char weight_str[7];
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1305,7 +1305,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 			}
 		}
 			
-		for(i = 0; i < 6; i++) {
+        for (unsigned int i = 0; i < 6; i++) {
 			weight_str[i] = source[20 + i];
 		}
 		weight_str[6] = '\0';
@@ -1327,7 +1327,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		int group_val;
 		char weight_str[7];
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1341,7 +1341,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 			}
 		}
 			
-		for(i = 0; i < 6; i++) {
+        for (unsigned int i = 0; i < 6; i++) {
 			weight_str[i] = source[20 + i];
 		}
 		weight_str[6] = '\0';
@@ -1368,7 +1368,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		char weight_str[8];
 		char date_str[4];
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1384,7 +1384,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		
 		weight_str[0] = source[19];
 		
-		for(i = 0; i < 5; i++) {
+        for (unsigned int i = 0; i < 5; i++) {
 			weight_str[i + 1] = source[21 + i];
 		}
 		weight_str[6] = '\0';
@@ -1427,7 +1427,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		char group[4];
 		int group_val;
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1457,7 +1457,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		int group_val;
 		char currency_str[5];
 		
-		for(i = 1; i < 5; i++) {
+        for (unsigned int i = 1; i < 5; i++) {
 			group[0] = source[(i * 3)];
 			group[1] = source[(i * 3) + 1];
 			group[2] = source[(i * 3) + 2];
@@ -1478,7 +1478,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 			case '3': concat(binary_string, "11"); break;
 		}
 		
-		for(i = 0; i < 3; i++) {
+        for (unsigned int i = 0; i < 3; i++) {
 			currency_str[i] = source[20 + i];
 		}
 		currency_str[3] = '\0';
@@ -1497,7 +1497,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 	rest of the data (if any) goes into a general-purpose data compaction field */
 	
 	j = 0;
-	for(i = read_posn; i < strlen(source); i++) {
+    for (unsigned int i = read_posn; i < strlen(source); i++) {
 		general_field[j] = source[i];
 		j++;
 	}
@@ -1505,7 +1505,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 	if(debug) printf("General field data = %s\n", general_field);
 	
 	latch = 0;
-	for(i = 0; i < strlen(general_field); i++) {
+    for (unsigned int i = 0; i < strlen(general_field); i++) {
 		/* Table 13 - ISO/IEC 646 encodation */
 		if((general_field[i] < ' ') || (general_field[i] > 'z')) {
 			general_field_type[i] = INVALID_CHAR; latch = 1;
@@ -1572,13 +1572,13 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
         return ERROR_INVALID_DATA1;
 	}
 	
-	for(i = 0; i < strlen(general_field); i++) {
+    for (unsigned int i = 0; i < strlen(general_field); i++) {
 		if((general_field_type[i] == ISOIEC) && (general_field[i + 1] == '[')) {
 			general_field_type[i + 1] = ISOIEC;
 		}
 	}
 	
-	for(i = 0; i < strlen(general_field); i++) {
+    for (unsigned int i = 0; i < strlen(general_field); i++) {
 		if((general_field_type[i] == ALPHA_OR_ISO) && (general_field[i + 1] == '[')) {
 			general_field_type[i + 1] = ALPHA_OR_ISO;
 		}
@@ -1600,7 +1600,7 @@ int rss_binary_string(struct zint_symbol *symbol, char source[], char binary_str
 		last_mode = ISOIEC;
 	}
 	
-	i = 0;
+    unsigned int i = 0;
 	do {
 		if(debug) printf("Processing character %d ", i);
 		switch(general_field_type[i]) {

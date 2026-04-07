@@ -1,11 +1,11 @@
 /*
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,13 @@ limitations under the License.
 */
 
 #include "CommonClasses.h"
+#include "numbertoarabicword.h"
+#include <QTextDocument>
+#include <QPainter>
 #include <QDebug>
 
-QString double2MoneyUKR(double n, int currency) {
+QString double2MoneyUKR(double n, int currency)
+{
     static QString cap[4][10] =	{
         {
             "",
@@ -436,8 +440,15 @@ QString double2MoneyENG(double number) {
 
     QString output;
 
+    // Thanks to Numael Garay for bug fixing
     if (number < 21) {
-        output = numbers[number];
+        double remainder = number - qFloor(number);
+
+        if (remainder > 0) {
+            output = numbers[qFloor(number)];
+        } else {
+            output = numbers[number];
+        }
     } else if (number < 100) {
         output = numbers[10 * qFloor(number / 10)];
         int remainder = (int)number % 10;
@@ -474,8 +485,10 @@ QString double2MoneyENG(double number) {
 }
 
 //Thanks to Norbert Schlia
-QString double2MoneyGER(double number, bool bAdditional /*= false*/) {
-    Q_UNUSED(bAdditional);
+QString double2MoneyGER(double number, bool bAdditional /*= false*/)
+{
+    Q_UNUSED(bAdditional)
+
     static QMap<double, QString> numbers;
 
     //Only initialize once
@@ -573,14 +586,14 @@ QString double2MoneyGER(double number, bool bAdditional /*= false*/) {
 
 //Thanks to Manuel Soriano
 #define	VALEN 16
-QString double2MoneyESP_Group(int _siGroup, char *_tscGroup, int _siGValue) {
+QString double2MoneyESP_Group(int _siGroup, char *_tscGroup, int _siGValue)
+{
     int			siInd1, siWk1, siValue;
     QString		stReturn, stWk1;
 
     static QMap<int, QString> stUnits;
     static QMap<int, QString> stDeci;
-    if (stUnits.isEmpty())
-    {
+    if (stUnits.isEmpty()) {
         stUnits[0] = "cero ";
         stUnits[1] = "uno ";
         stUnits[2] = "dos ";
@@ -612,73 +625,59 @@ QString double2MoneyESP_Group(int _siGroup, char *_tscGroup, int _siGValue) {
         stDeci[9] = "noventa ";
     }
 
-    for (siInd1=0; siInd1 < 3; siInd1++)
-    {
+    for (siInd1=0; siInd1 < 3; siInd1++) {
         siValue = *(_tscGroup+siInd1) - 0x30;
         stWk1 = stUnits[siValue];
 
-        if (_siGValue == 0)			// "cero" away
-        {
+        // "cero" away
+        if (_siGValue == 0)	{
             stReturn.clear();
             siInd1 = 3;
             continue;
         }
 
-        if (siValue == 0)			// We do not want the "cero" text in our sentence
-        {
+        // We do not want the "cero" text in our sentence
+        if (siValue == 0) {
             continue;
         }
 
-        if (_siGValue == 1)
-        {
-            if (_siGroup == 3)
-            {
+        if (_siGValue == 1) {
+            if (_siGroup == 3) {
                 stReturn.clear();	// mil
                 siInd1 = 3;
                 continue;
             }
         }
 
-        if (siInd1 == 0)
-        {
-            if (siValue == 1)
-            {
-                if (atoi(_tscGroup) == 100)
-                {
+        if (siInd1 == 0) {
+            if (siValue == 1) {
+                if (atoi(_tscGroup) == 100) {
                     stReturn = ::QString("cien ");
                     siInd1 = 3;
                     continue;
-                }
-                else
-                {
+                } else {
                     stWk1 = ::QString("ciento ");
                 }
-            }
-            else
-            {
+            } else {
                 stWk1 += ::QString("cientos ");
             }
         }
 
-        if (siInd1 == 1)
-        {
-            if (siValue == 1)
-            {
+        if (siInd1 == 1) {
+            if (siValue == 1) {
                 siWk1 = (siValue * 10) + *(_tscGroup+siInd1+1) - 0x30;
                 stReturn += stUnits[siWk1];
                 siInd1 = 3;
                 continue;
             }
 
-            if (siValue > 1)
-            {
+            if (siValue > 1) {
                 stWk1 = stDeci[siValue];
                 stWk1 += ::QString("y ");
             }
         }
 
-        if (siInd1 == 2)
-        {
+        if (siInd1 == 2) {
             if ((siValue == 1) && (_siGroup < 4))
                 stWk1 = ::QString("un ");
         }
@@ -690,11 +689,12 @@ QString double2MoneyESP_Group(int _siGroup, char *_tscGroup, int _siGValue) {
 }
 
 /*
-Thank you to Manuel Soriano
+Thanks to Manuel Soriano
 0 : Does not print the decimals
 1 : Print the decimals
 */
-QString double2MoneyESP(double _dbValue, int _blDecimals) {
+QString double2MoneyESP(double _dbValue, int _blDecimals)
+{
     QString		stValue, stReturn;
 
     long		slValue, slDecimals;
@@ -702,8 +702,7 @@ QString double2MoneyESP(double _dbValue, int _blDecimals) {
     char		tscGroup[4], tscValue[VALEN];
 
     static QMap<int, QString> stMillos;
-    if (stMillos.isEmpty())
-    {
+    if (stMillos.isEmpty()) {
         stMillos[0] = "billónes ";
         stMillos[1] = "millardos ";
         stMillos[2] = "millones ";
@@ -713,8 +712,7 @@ QString double2MoneyESP(double _dbValue, int _blDecimals) {
     }
 
     static QMap<int, QString> stMillo;
-    if (stMillo.isEmpty())
-    {
+    if (stMillo.isEmpty()) {
         stMillo[0] = "billón ";
         stMillo[1] = "millardo ";
         stMillo[2] = "millón ";
@@ -736,22 +734,22 @@ QString double2MoneyESP(double _dbValue, int _blDecimals) {
 
     memcpy(tscValue+((VALEN-siLen)-1), stValue.toLatin1().data(), siLen);
 
-    for (siWk1=0; siWk1 < (VALEN/3); siWk1++)
-    {
+    for (siWk1=0; siWk1 < (VALEN/3); siWk1++) {
         memset(tscGroup, 0x00, sizeof(tscGroup));
         memcpy(tscGroup, tscValue+(3*siWk1), 3);
         if (strcmp(tscGroup, "000") == 0)
             continue;
+
         siValue = atoi(tscGroup);
         stReturn += double2MoneyESP_Group(siWk1, tscGroup, siValue);
+
         if (siValue == 1)
             stReturn += stMillo[siWk1];
         else
             stReturn += stMillos[siWk1];
     }
 
-    if ((slDecimals > 0) && _blDecimals)
-    {
+    if ((slDecimals > 0) && _blDecimals) {
         stReturn += ::QString("con ");
         stValue.setNum(slDecimals);
         siLen = stValue.length();
@@ -760,14 +758,15 @@ QString double2MoneyESP(double _dbValue, int _blDecimals) {
         memset(tscValue, 0x30, sizeof(tscValue)-1);
         memcpy(tscValue+((VALEN-siLen)-1), stValue.toLatin1().data(), siLen);
 
-        for (siWk1=0; siWk1 < (VALEN/3); siWk1++)
-        {
+        for (siWk1=0; siWk1 < (VALEN/3); siWk1++) {
             memset(tscGroup, 0x00, sizeof(tscGroup));
             memcpy(tscGroup, tscValue+(3*siWk1), 3);
             if (strcmp(tscGroup, "000") == 0)
                 continue;
+
             siValue = atoi(tscGroup);
             stReturn += double2MoneyESP_Group(siWk1, tscGroup, siValue);
+
             if (siValue == 1)
                 stReturn += stMillo[siWk1];
             else
@@ -779,8 +778,10 @@ QString double2MoneyESP(double _dbValue, int _blDecimals) {
 }
 
 //Thanks to Laurent Guilbert
-QString double2MoneyFrenchBE(double number, bool bAdditional /*= false*/) {
-    Q_UNUSED(bAdditional);
+QString double2MoneyFrenchBE(double number, bool bAdditional /*= false*/)
+{
+    Q_UNUSED(bAdditional)
+
     int whole = (int)number;
     int precision = ((number-whole)*100)+0.5;
 
@@ -791,8 +792,10 @@ QString double2MoneyFrenchBE(double number, bool bAdditional /*= false*/) {
     }
 }
 
-QString double2MoneyFrenchFR(double number, bool bAdditional /*= false*/) {
-    Q_UNUSED(bAdditional);
+QString double2MoneyFrenchFR(double number, bool bAdditional /*= false*/)
+{
+    Q_UNUSED(bAdditional)
+
     int whole = (int)number;
     int precision = (number - whole) * 100;
 
@@ -803,8 +806,10 @@ QString double2MoneyFrenchFR(double number, bool bAdditional /*= false*/) {
     }
 }
 
-QString double2MoneyFrenchCH(double number, bool bAdditional /*= false*/) {
-    Q_UNUSED(bAdditional);
+QString double2MoneyFrenchCH(double number, bool bAdditional /*= false*/)
+{
+    Q_UNUSED(bAdditional)
+
     int whole = (int)number;
     int precision = (number - whole) * 100;
 
@@ -815,7 +820,8 @@ QString double2MoneyFrenchCH(double number, bool bAdditional /*= false*/) {
     }
 }
 
-QString double2MoneyFrench(int number, int language) {
+QString double2MoneyFrench(int number, int language)
+{
     QMap<double, QString> numbers;
 
     //Only initialize once
@@ -984,7 +990,206 @@ QString double2MoneyFrench(int number, int language) {
     return output;
 }
 
-QString double2Money(double n, QString lang) {
+QString double2MoneyITA(double n)
+{
+    static QMap<double, QString> numbers;
+
+    //Only initialize once
+    if (numbers.isEmpty()) {
+        numbers[0] = "zero";
+        numbers[1] = "uno";
+        numbers[2] = "due";
+        numbers[3] = "tre";
+        numbers[4] = "quattro";
+        numbers[5] = "cinque";
+        numbers[6] = "sei";
+        numbers[7] = "sette";
+        numbers[8] = "otto";
+        numbers[9] = "nove";
+        numbers[10] = "dieci";
+        numbers[11] = "undici";
+        numbers[12] = "dodici";
+        numbers[13] = "tredici";
+        numbers[14] = "quattordici";
+        numbers[15] = "quindici";
+        numbers[16] = "sedici";
+        numbers[17] = "diciasette";
+        numbers[18] = "diciotto";
+        numbers[19] = "diciannove";
+        numbers[20] = "venti";
+        numbers[30] = "trenta";
+        numbers[40] = "quaranta";
+        numbers[50] = "cinquanta";
+        numbers[60] = "sessanta";
+        numbers[70] = "settanta";
+        numbers[80] = "ottanta";
+        numbers[90] = "novanta";
+        numbers[1000]= "mille";
+    }
+
+    static QMap<uint, QString> powers;
+
+    //Only initialize once
+    if (powers.isEmpty()) {
+        powers[2] = "cento";
+        powers[3] = "mila ";
+        powers[6] = " milioni ";
+        powers[9] = " miliardi ";
+    }
+
+    QString output="";
+
+    if (n < 21) {//Number from the QMap
+        output = numbers[n];
+    } else if (n < 100) {
+        output = numbers[10 * qFloor(n / 10)];
+        int remainder = (long long)n % 10;
+
+        if (remainder > 0){
+            if(remainder==1 || remainder==8)
+                output.chop(1);
+            output = output + double2MoneyITA(remainder);
+        }
+    } else {
+        uint power = 2;
+        uint place = 0;
+        QString powerString;
+
+        //QMap::keys is ordered
+        foreach (uint pow, powers.keys()) {
+            uint place_value = qPow(10, pow);
+            uint tmp_place = qFloor(n / place_value);
+            if (tmp_place < 1)
+                break;
+
+            place = tmp_place;
+            power = pow;
+
+            if (pow ==3 && n < 2E3) {//1000 is "mille"
+                powerString = "mille";
+            }
+            else if (pow == 6 && n < 2E6) {// 1 000 000 in "un milione"
+                powerString = "un milione ";
+            }
+            else if (pow == 9 && n < 2E9) {//1 000 000 000 is "un miliardo"
+                powerString = "un miliardo ";
+            }
+            else {
+                powerString = powers[pow];
+            }
+        }
+
+        if (power > 0) {
+            QString notOne="";
+            if (place!=1) notOne= double2MoneyITA(place);//If place is 1 then powerString contains the right value
+            output = notOne + powerString;
+            double remainder = (long long)n % (long long)double(qPow(10, power));
+
+            if (remainder > 0)
+                output += double2MoneyITA(remainder);
+        }
+    }
+
+    return output;
+}
+
+//Thanks to Dr. Mucibirahman İLBUĞA
+QString double2MoneyTR(double gelenRakam)
+{
+    int tam;
+    double kusur;
+    QString takas;
+
+    tam = gelenRakam;
+    kusur = gelenRakam - tam;
+
+    takas = QString::number(kusur, 'f', 2);
+
+    //QString takas = QString::number(gelenRakam,'f', 2).remove(QRegExp("\\.?0+$"));
+
+    QStringList parca = takas.split(".");
+
+
+    /*
+    qDebug()<< gelenRakam;
+    qDebug()<< tam;
+    qDebug()<< parca.last();
+    */
+
+    if(parca.last().toInt()>0)
+
+    return yaziyaCevir(tam) + "#TL#"+yaziyaCevir(parca.last().toInt())+"#KRŞ";
+    else return yaziyaCevir(tam) + "#TL#";
+
+}
+
+QString yaziyaCevir(int gelenInt)
+{
+    QString birlik[10] = {"", "BİR", "İKİ", "ÜÇ", "DÖRT", "BEŞ", "ALTI", "YEDİ", "SEKİZ", "DOKUZ"};
+    QString onluk[10] = {"", "ON", "YİRMİ", "OTUZ", "KIRK", "ELLİ", "ALTMIŞ", "YETMİŞ", "SEKSEN", "DOKSAN"};
+    QString yuzluk[10] = {"", "YÜZ", "İKİYÜZ", "ÜÇYÜZ", "DÖRTYÜZ", "BEŞYÜZ", "ALTIYÜZ", "YEDİYÜZ", "SEKİZYÜZ", "DOKUZYÜZ"};
+    QString bolum[11] = {"BİN", "MİLYON", "MİLYAR", "TRİLYON", "KATRİLYON", "KENTİLYON", "SEKSTİLYON", "SEPTİLYON", "OKTİLYON", "NONİLYON", "DESİLYON"};
+
+
+
+    QString gelenMetin = QString::number(gelenInt);
+
+    QString sonuc="";
+
+
+    int basamak = 1;
+    int bol = 0;
+
+
+    for (int i = gelenMetin.length();i>0;i--) {
+
+        //qDebug()<<basamak;
+        //qDebug()<<i;
+        //qDebug()<<gelenSayi;
+
+
+        switch (basamak) {
+        case 1:
+            //if(gelenMetin.mid(i-1,1).toInt()!=1 && gelenMetin.length()!=4)
+            sonuc = birlik[gelenMetin.mid(i-1,1).toInt()] + sonuc;
+            //qDebug()<<gelenMetin.mid(i-1,1).toInt();
+            //qDebug()<<birlik[gelenMetin.mid(i-1,1).toInt()];
+            break;
+        case 2:
+            sonuc = onluk[gelenMetin.mid(i-1,1).toInt()] + sonuc;
+            //qDebug()<<gelenMetin.mid(i-1,1).toInt();
+            //qDebug()<<onluk[gelenMetin.mid(i-1,1).toInt()];
+            break;
+        case 3:
+            sonuc = yuzluk[gelenMetin.mid(i-1,1).toInt()] + sonuc;
+            //qDebug()<<gelenMetin.mid(i-1,1).toInt();
+            //qDebug()<<yuzluk[gelenMetin.mid(i-1,1).toInt()];
+            break;
+        }
+
+        basamak = basamak +1;
+
+        if(basamak > 3)
+        {
+            if(i!=1) sonuc = bolum[bol]+sonuc;
+            basamak=1;
+            bol=bol+1;
+        }
+
+    }
+
+    if (sonuc.mid(0,6)!="BİRBİN") return sonuc; else return sonuc.mid(3);
+}
+
+//Thanks to Mohamed Glaiow <mh_glaiow@yahoo.com>
+QString double2MoneyAR(double n)
+{
+    NumberToArabicWord number(n);
+    return number.ConvertToArabic();
+}
+
+QString double2Money(double n, QString lang)
+{
     if (lang == "UKR")
         return double2MoneyUKR(n,0);
     //else if (lang == "RUS")
@@ -1001,11 +1206,18 @@ QString double2Money(double n, QString lang) {
         return double2MoneyFrench(n,1);
     else if (lang == "FR_CH")
         return double2MoneyFrench(n,2);
+    else if (lang == "ITA")
+        return double2MoneyITA(n);
+    else if (lang == "AR")
+        return double2MoneyAR(n);
+    else if (lang == "TR")
+        return double2MoneyTR(n);
     else
         return double2MoneyENG(n);
 }
 
-QString colorToString(QColor color) {
+QString colorToString(QColor color)
+{
     QString str("rgba("+
                 QString::number(color.red())+","+
                 QString::number(color.green())+","+
@@ -1014,11 +1226,13 @@ QString colorToString(QColor color) {
     return str;
 }
 
-QColor colorFromString(QString value) {
+QColor colorFromString(QString value)
+{
     //if (value == "rgba(255,255,255,0)")
     //    value = "rgba(255,255,255,255)";
     QColor color;
-    if (value.isEmpty()) return color;
+    if (value.isEmpty())
+        return color;
     int start; int end;
     start = value.indexOf("(",0,Qt::CaseInsensitive);
     end =   value.indexOf(")",start+1,Qt::CaseInsensitive);
@@ -1034,32 +1248,108 @@ QColor colorFromString(QString value) {
     return color;
 }
 
-QString eventType(QEvent *ev) {
+QString eventType(QEvent *ev)
+{
     static int eventEnumIndex = QEvent::staticMetaObject.indexOfEnumerator("Type");
     QString name = QEvent::staticMetaObject.enumerator(eventEnumIndex).valueToKey(ev->type());
 
-    if (!name.isEmpty()) return name; else return (QString)ev->type();
+    if (!name.isEmpty())
+        return name;
+    else
+        return QVariant(ev->type()).toString();
 }
 
-/*pointer to QVariant and back
-http://blog.bigpixel.ro/2010/04/storing-pointer-in-qvariant/
-usage
-
-MyClass *p;
-QVariant v = VPtr<MyClass>::asQVariant(p);
-
-MyClass *p1 = VPtr<MyClass>::asPtr(v);
-*/
-template <class T> class VPtr
+void drawText(QPainter *painter, QString &text, QFont &font, QColor &fontColor,
+              QRectF rcT, int flags, int renderingMode, int textRotate,
+              int paddingX, int paddingY)
 {
-public:
-    static T* asPtr(QVariant v)
-    {
-    return  (T *) v.value<void *>();
+    if (renderingMode == 1) {
+        QString htmlText = plainText2html(text, rcT, flags, font, fontColor, textRotate);
+        QTextDocument td;
+        td.setDefaultFont(painter->font());
+        td.setHtml(htmlText);
+
+        if (textRotate == 0)
+            td.setTextWidth(rcT.width());
+        if (textRotate == 1)
+            td.setTextWidth(rcT.height());
+        if (textRotate == 2)
+            td.setTextWidth(rcT.width());
+        if (textRotate == 3)
+            td.setTextWidth(rcT.height());
+
+        painter->save();
+        painter->translate(-3,-3);
+        td.drawContents(painter);
+        painter->restore();
+    } else {
+        if (textRotate == 0)
+            painter->drawText(rcT.left()+paddingX, rcT.top()+paddingY, rcT.width()-paddingX, rcT.height()-paddingY, flags, text);
+        if (textRotate == 1)
+            painter->drawText(0+paddingY, 0+paddingX, rcT.height()-paddingY, rcT.width()-paddingX, flags, text);
+        if (textRotate == 2)
+            painter->drawText(0+paddingX, 0+paddingY, rcT.width()-paddingX, rcT.height()-paddingY, flags, text);
+        if (textRotate == 3)
+            painter->drawText(0+paddingY, 0+paddingX, rcT.height()-paddingY, rcT.width()-paddingX, flags, text);
+    }
+}
+
+QString plainText2html(QString &text, QRectF rcT, int flags, QFont &font, QColor &fontColor, int textRotate)
+{
+    QString htmlText = Qt::convertFromPlainText(text);
+    htmlText.replace("&lt;sub&gt;","<sub>").replace("&lt;/sub&gt;","</sub>");
+    htmlText.replace("&lt;sup&gt;","<sup>").replace("&lt;/sup&gt;","</sup>");
+    htmlText.replace("&lt;b&gt;","<b>").replace("&lt;/b&gt;","</b>");
+    htmlText.replace("&lt;i&gt;","<i>").replace("&lt;/i&gt;","</i>");
+    htmlText.replace("&lt;u&gt;","<u>").replace("&lt;/u&gt;","</u>");
+    htmlText.replace("&lt;s&gt;","<s>").replace("&lt;/s&gt;","</s>");
+
+    QString alignParam;
+    if (flags & Qt::AlignCenter)
+        alignParam = "align='center'";
+    if (flags & Qt::AlignLeft)
+        alignParam = "align='left'";
+    if (flags & Qt::AlignRight)
+        alignParam = "align='right'";
+    if (flags & Qt::AlignJustify)
+        alignParam = "align='justify'";
+
+    QString valignParam;
+    if (flags & Qt::AlignTop)
+        valignParam = valignParam + " valign='top'";
+    if (flags & Qt::AlignBottom)
+        valignParam = valignParam + " valign='bottom'";
+    if (flags & Qt::AlignVCenter)
+        valignParam = valignParam + " valign='middle'";
+
+    int width = rcT.width();
+    int height = rcT.height();
+    if (textRotate == 1 || textRotate == 3) {
+        width = rcT.height();
+        height = rcT.width();
     }
 
-    static QVariant asQVariant(T* ptr)
-    {
-    return qVariantFromValue((void *) ptr);
-    }
-};
+    QString fontTag = "<table cellpadding='0' width='"+QString::number(width)+
+                      "' height='"+QString::number(height)+"'><tr><td" + valignParam + ">"
+                      "<span style='font-size:" + QString::number(font.pointSize() ) + "pt;" +
+                      "font-family:" + font.family() + ";" +
+                      "color:" + fontColor.name() + ";" +
+                      "'>";
+
+
+    htmlText.replace("<p>","<p " +alignParam+ ">");
+    //htmlText = "<table width='200' height='500'><tr><td style='vertical-align:bottom'>dddd</td><tr></table>";
+
+    if (font.bold())
+        htmlText = "<b>" + htmlText + "</b>";
+    if (font.italic())
+        htmlText = "<i>" + htmlText + "</i>";
+    if (font.underline())
+        htmlText = "<u>" + htmlText + "</u>";
+
+    htmlText = fontTag + htmlText + "</span></td></tr></table>";
+
+//    qDebug() << htmlText;
+
+    return htmlText;
+}

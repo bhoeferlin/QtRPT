@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef GRAPHICSBOX_H
-#define GRAPHICSBOX_H
+#pragma once
 
 #include <QGraphicsItem>
 #include <QGraphicsRectItem>
@@ -41,6 +40,10 @@ limitations under the License.
 #include <QPushButton>
 #include <Barcode.h>
 
+
+using SPtrQChartView = QSharedPointer<QChartView>;
+using SPtrQChart = QSharedPointer<QChart>;
+
 class GraphicsBox : public QGraphicsItem, public GraphicsHelperClass
 {
 public:
@@ -50,17 +53,17 @@ public:
     virtual void setPos(qreal x, qreal y);
     QPointF getPos();
     int type() const Q_DECL_OVERRIDE { return ItemType::GBox; }
-    void setSelected(bool selected_);
+    void setSelected(bool selected);
     bool isSelected();
     void setWidth(qreal value);
     void setHeight(qreal value);
-    qreal getWidth() {return _width;}
-    qreal getHeight() {return _height;}
+    qreal getWidth() {return m_width;}
+    qreal getHeight() {return m_height;}
     GraphicsBox *clone();
-    void loadParamFromXML(QDomElement e);
-    QDomElement saveParamToXML(QDomDocument *xmlDoc);
-    void setText(QString value); //
-    QString getText(); //
+    void loadParamFromXML(QDomElement e) override;
+    QDomElement saveParamToXML(QSharedPointer<QDomDocument> xmlDoc) override;
+    void setText(QString value);
+    QString getText();
     void setFont(QFont font) {m_font = font;}
     QFont getFont() {return m_font;}
     Qt::Alignment getAlignment() {return m_alignment;}
@@ -70,19 +73,32 @@ public:
     bool borderIsVisible();
     bool getIgnoreAspectRatio() {return m_ignoreAspectRatio;}
     void setIgnoreAspectRatio(bool value) {m_ignoreAspectRatio = value;}
+    int paddingX();
+    int paddingY();
+    void setPaddingX(int value);
+    void setPaddingY(int value);
     bool getAutoHeight() {return m_autoHeight;}
     void setAutoHeight(bool value) {m_autoHeight = value;}
+    bool getRenderingMode() {return m_RenderingMode;}
+    void setRenderingMode(bool value) {m_RenderingMode = value;}
     void setTextDirection(bool value) {m_textDirection = value;}
     bool getTextDirection() {return m_textDirection;}
     void setTextWrap(bool value) {m_textWrap = value;}
-    bool getTextWrap() {return m_textWrap;}
+    bool textWrap() {return m_textWrap;}
+    void setTextRotate(int value) {m_textRotate = value;}
+    int textRotate() {return m_textRotate;}
     QString getFormatString() {return m_formatString;}
     void setFormatString(QString value) {m_formatString = value;}
-    void setImage(QPixmap p);
+    QString getInputFormatString() {return m_inputFormatString;}
+    void setInputFormatString(QString value) {
+        m_inputFormatString = value;
+    }
+
+    void setImage(QPixmap pixmap);
     QPixmap getImage();
     QString getImgFormat();
     void setImgFromat(QString value);
-    void setMenu(QMenu *menu_);
+    void setMenu(QMenu *menu);
     BarCode::BarcodeTypes getBarcodeType();
     void setBarcodeType(BarCode::BarcodeTypes value);
     BarCode::FrameTypes getBarcodeFrameType();
@@ -92,53 +108,47 @@ public:
     void setFieldType(FieldType value);
     QString getHighlighting() {return m_highlighting;}
     void setHighlighting(QString value) {m_highlighting = value;}
-    RptCrossTabObject *getCrossTab();
-    Chart *getChart();
-    BarCode *getBarCode();
+    SPtrCrossTab getCrossTab();
+    SPtrQChart getChart();
+    SPtrBarCode getBarCode();
 
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value);
-    QColor _outterborderColor; ///< the hover event handlers will toggle this between red and black
-
-    qreal   _drawingWidth;
-    qreal   _drawingHeight;
-    qreal   _drawingOrigenX;
-    qreal   _drawingOrigenY;
+    qreal   m_drawingWidth;
+    qreal   m_drawingHeight;
+    qreal   m_drawingOrigenX;
+    qreal   m_drawingOrigenY;
 
     void createCorners();
     void setCornerPositions();
-    virtual void mouseReleaseEvent (QGraphicsSceneMouseEvent * event );
-    virtual void mouseMoveEvent ( QGraphicsSceneMouseEvent * event );
-    virtual void mousePressEvent (QGraphicsSceneMouseEvent * event );
-    void contextMenuEvent(QGraphicsSceneContextMenuEvent *event);
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) Q_DECL_OVERRIDE;
 
 private:
-    virtual QRectF boundingRect() const; ///< must be re-implemented in this class to provide the diminsions of the box to the QGraphicsView
-    virtual void paint (QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *); ///< must be re-implemented here to pain the box on the paint-event
-    virtual void hoverLeaveEvent ( QGraphicsSceneHoverEvent * event ); ///< must be re-implemented to handle mouse hover leave events
-
-    virtual void mouseMoveEvent(QGraphicsSceneDragDropEvent *event);
-    virtual void mousePressEvent(QGraphicsSceneDragDropEvent *event);
-    virtual bool sceneEventFilter ( QGraphicsItem * watched, QEvent * event ) ;
+    QRectF boundingRect() const Q_DECL_OVERRIDE; // must be re-implemented in this class to provide the diminsions of the box to the QGraphicsView
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *) Q_DECL_OVERRIDE; // must be re-implemented here to pain the box on the paint-event
+    void hoverEnterEvent(QGraphicsSceneHoverEvent *event) Q_DECL_OVERRIDE; // must be re-implemented to handle mouse hover enter events
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) Q_DECL_OVERRIDE; // must be re-implemented to handle mouse hover leave events
 
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+    void mousePressEvent(QGraphicsSceneMouseEvent *event) Q_DECL_OVERRIDE;
+
+    bool sceneEventFilter(QGraphicsItem *watched, QEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QGraphicsSceneDragDropEvent *event);
+    void mousePressEvent(QGraphicsSceneDragDropEvent *event);
+
+
     void adjustSize(int x, int y);
 
-    QPen _outterborderPen; ///< the pen is used to paint the red/black border
-    QPointF _location;
-    QPointF _dragStart;
-    qreal   _width;
-    qreal   _height;
-
-    int _XcornerGrabBuffer;
-    int _YcornerGrabBuffer;
-
-    CornerGrabber*  _corners[8];
-
-    void destroyCorners();
+    qreal   m_width;
+    qreal   m_height;
 
     QString m_text;
     bool m_borderIsVisible;
+    int m_RenderingMode;
+    int m_paddingX;
+    int m_paddingY;
 
     QPixmap m_bandPixmap;
     QFont m_font;
@@ -147,17 +157,17 @@ private:
     bool m_autoHeight;
     bool m_textDirection;
     bool m_textWrap;
+    int m_textRotate;
     int m_radius;
-    BarCode *m_barcode;
-    Chart *m_chart;
-    RptCrossTabObject *m_crossTab;
+    SPtrBarCode m_barcode;
+    SPtrQChartView m_chartView;
+    SPtrQChart m_chart;
+    SPtrCrossTab m_crossTab;
 
     QString m_formatString;
+    QString m_inputFormatString;
     QString m_highlighting;
     QString m_imgFormat;
     QPixmap m_pixmap;
 
-
 };
-
-#endif // GRAPHICSBOX_H

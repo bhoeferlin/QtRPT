@@ -1,11 +1,11 @@
 /*
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef COMMONCLASSES_H
-#define COMMONCLASSES_H
+#pragma once
 
 #include <QMap>
 #include <QMetaEnum>
@@ -44,10 +43,39 @@ QString double2MoneyFrench(int number, int language);
 QString double2MoneyFrenchBE(double number, bool bAdditional /*= false*/);
 QString double2MoneyFrenchFR(double number, bool bAdditional /*= false*/);
 QString double2MoneyFrenchCH(double number, bool bAdditional /*= false*/);
+QString double2MoneyITA(double n);
+QString double2MoneyAR(double n);
+QString double2MoneyTR(double gelenRakam);
+QString yaziyaCevir(int gelenInt);
 
 QString double2Money(double n, QString lang);
 QString colorToString(QColor color);
 QColor colorFromString(QString value);
 QString eventType(QEvent *ev);
 
-#endif // COMMONCLASSES_H
+void drawText(QPainter *painter, QString &text, QFont &font, QColor &fontColor, QRectF rcT, int flags, int renderingMode, int textRotate, int paddingX, int paddingY);
+QString plainText2html(QString &text, QRectF rcT, int flags, QFont &font, QColor &fontColor, int textRotate);
+
+/*pointer to QVariant and back
+http://blog.bigpixel.ro/2010/04/storing-pointer-in-qvariant/
+usage
+
+MyClass *p;
+QVariant v = VPtr<MyClass>::asQVariant(p);
+
+MyClass *p1 = VPtr<MyClass>::asPtr(v);
+*/
+template <class T> class VPtr
+{
+public:
+    static T* asPtr(QVariant v)
+    {
+    return  (T *) v.value<void *>();
+    }
+
+    static QVariant asQVariant(T* ptr)
+    {
+    return QVariant::fromValue((void *) ptr);
+    }
+};
+

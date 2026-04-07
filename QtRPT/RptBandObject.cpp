@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -115,40 +115,57 @@ limitations under the License.
  \fn RptBandObject::RptBandObject()
     Constructs a RptBandObject object.
 */
-void RptBandObject::setProperty(QtRPT *qtrpt, QDomElement docElem) {
-    name = docElem.attribute("name");
-    realHeight = docElem.attribute("height").toInt();
-    height = docElem.attribute("height").toInt();
-    width = docElem.attribute("width").toInt();
-    left = docElem.attribute("left").toInt();
-    right = docElem.attribute("right").toInt();
-    groupingField = docElem.attribute("groupingField");
-    showInGroup = docElem.attribute("showInGroup","0").toInt();
-    startNewPage = docElem.attribute("startNewPage","0").toInt();
+/*!
+ \fn RptFieldObject::RptFieldObject()
+    Constructs a RptFieldObject object.
+*/
+RptBandObject::RptBandObject(QObject *parent)
+    : QObject(parent)
+{
+
+}
+
+void RptBandObject::setProperty(QtRPT *qtrpt, QDomElement docElem)
+{
+    name               = docElem.attribute("name");
+    realHeight         = docElem.attribute("height").toInt();
+    height             = docElem.attribute("height").toInt();
+    width              = docElem.attribute("width").toInt();
+    left               = docElem.attribute("left").toInt();
+    right              = docElem.attribute("right").toInt();
+    groupingField      = docElem.attribute("groupingField");
+    groupLevel         = docElem.attribute("groupLevel", "0").toInt();
+    showInGroup        = docElem.attribute("showInGroup","0").toInt();
+    startNewNumeration = docElem.attribute("startNewNumeration","0").toInt();
+    startNewPage       = docElem.attribute("startNewPage","0").toInt();
+    bandNo             = docElem.attribute("bandNo", "1").toInt();
+    dsName             = docElem.attribute("dataSourceName", "");
+    sortDataInGroup    = true;
+    groupHeaderEachlevel = false;
 
     if (docElem.attribute("type") == "ReportTitle")
         type = ReportTitle;
-    if (docElem.attribute("type") == "PageHeader")
+    else if (docElem.attribute("type") == "PageHeader")
         type = PageHeader;
-    if (docElem.attribute("type") == "MasterData")
+    else if (docElem.attribute("type") == "MasterData")
         type = MasterData;
-    if (docElem.attribute("type") == "PageFooter")
+    else if (docElem.attribute("type") == "PageFooter")
         type = PageFooter;
-    if (docElem.attribute("type") == "ReportSummary")
+    else if (docElem.attribute("type") == "ReportSummary")
         type = ReportSummary;
-    if (docElem.attribute("type") == "MasterFooter")
+    else if (docElem.attribute("type") == "MasterFooter")
         type = MasterFooter;
-    if (docElem.attribute("type") == "MasterHeader")
+    else if (docElem.attribute("type") == "MasterHeader")
         type = MasterHeader;
-    if (docElem.attribute("type") == "DataGroupHeader")
+    else if (docElem.attribute("type") == "DataGroupHeader")
         type = DataGroupHeader;
-    if (docElem.attribute("type") == "DataGroupFooter")
+    else if (docElem.attribute("type") == "DataGroupFooter")
         type = DataGroupFooter;
-    //---
+
     QDomNode n = docElem.firstChild();
     while(!n.isNull()) {
         QDomElement e = n.toElement();
-        RptFieldObject *fieldObject = new RptFieldObject();
+        auto fieldObject = new RptFieldObject(this);
         fieldObject->parentBand = this;
         fieldObject->setProperty(qtrpt,e);
         fieldList.append(fieldObject);
@@ -163,22 +180,50 @@ void RptBandObject::setProperty(QtRPT *qtrpt, QDomElement docElem) {
 
     \sa RptFieldObject
 */
-void RptBandObject::addField(RptFieldObject *field) {
+void RptBandObject::addField(RptFieldObject *field)
+{
     field->parentBand = this;
 	field->m_qtrpt = this->m_qtrpt;
     fieldList.append(field);
 }
 
 /*!
+ \fn RptBandObject *RptBandObject::clone()
+    Clone the current band and return \c RptBandObject of the new band object
+*/
+RptBandObject *RptBandObject::clone()
+{
+    auto band = new RptBandObject(this->parent());
+    band->name = "ReportTitle";
+    band->height = this->height;
+    band->type = this->type;
+    band->m_qtrpt = this->m_qtrpt;
+
+    for (auto &field : fieldList) {
+        auto newField = field->clone();
+        band->addField(newField);
+    }
+
+    return band;
+}
+
+void RptBandObject::setStartNewPage(bool value)
+{
+    startNewPage = value;
+}
+
+/*!
   Destroys the object, deleting all its child objects.
  */
-RptBandObject::~RptBandObject() {
-    for (int i=0; i<fieldList.size(); i++)
-        delete fieldList.at(i);
+RptBandObject::~RptBandObject()
+{
+    if (!fieldList.isEmpty())
+        qDeleteAll(fieldList);
     fieldList.clear();
 }
 
-QDebug operator<<(QDebug dbg, const RptBandObject &obj) {
+QDebug operator<<(QDebug dbg, const RptBandObject &obj)
+{
     dbg << obj.name << obj.fieldList;
     return dbg;
 }

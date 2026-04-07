@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,18 +25,24 @@ limitations under the License.
 #include "ui_FldPropertyDlg.h"
 #include "ReportBand.h"
 
-FldPropertyDlg::FldPropertyDlg(QWidget *parent) : QDialog(parent), ui(new Ui::FldPropertyDlg) {
+FldPropertyDlg::FldPropertyDlg(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::FldPropertyDlg)
+{
     ui->setupUi(this);
 }
 
-QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) {
+QString FldPropertyDlg::showThis(int index, GraphicsBox *widget)
+{
     QIcon iconFolder(QPixmap(QString::fromUtf8(":/new/prefix1/images/folder.png")));
     QIcon iconVariable(QPixmap(QString::fromUtf8(":/new/prefix1/images/variable.png")));
     QIcon iconFunction(QPixmap(QString::fromUtf8(":/new/prefix1/images/function1.png")));
+
     if (index == 3)
         ui->stackedWidget->setCurrentIndex(0);
     else
         ui->stackedWidget->setCurrentIndex(index);
+
     switch(index) {
         case 0:
         case 3: {
@@ -50,7 +56,7 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
             rootItem->addChild(f1);
 
             QTreeWidgetItem *item;
-            if (index == 0) {   //Variables
+            if (index == 0) {   // Variables
                 rootItem->setText(0,tr("Variables"));
                 f1->setText(0,tr("System variables"));
 
@@ -93,7 +99,7 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
                 this->setWindowTitle(tr("Variables"));
                 this->setWindowIcon(iconVariable);
             }
-            if (index == 3) {   //Functions
+            if (index == 3) {   // Functions
                 rootItem->setText(0,tr("Functions"));
 
                 //------------------Aggregate functions----------------------
@@ -135,6 +141,19 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
                 f1->setText(0,tr("Text functions"));
                 f1->setExpanded(true);
                 rootItem->addChild(f1);
+
+                item = new QTreeWidgetItem(f1);
+                item->setIcon(0,iconFunction);
+                item->setToolTip(0,tr("Replace"));
+                item->setText(0,"Replace");
+                item->setData(0,Qt::UserRole,"<Replace(String, OldStr, NewStr)>");
+                f1->addChild(item);
+
+                item = new QTreeWidgetItem(f1);
+                item->setIcon(0,iconFunction);
+                item->setToolTip(0,tr("Substring"));
+                item->setText(0,"Substring");
+                item->setData(0,Qt::UserRole,"<Substring(String, StartPos, Length)>");
 
                 item = new QTreeWidgetItem(f1);
                 item->setIcon(0,iconFunction);
@@ -199,6 +218,20 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
                 item->setData(0,Qt::UserRole,"<NumberToWords('FR_CH', )>");
                 f1->addChild(item);
 
+                item = new QTreeWidgetItem(f1);
+                item->setIcon(0,iconFunction);
+                item->setToolTip(0,tr("Italian"));
+                item->setText(0,"NumberToWords (ITA)");
+                item->setData(0,Qt::UserRole,"<NumberToWords('ITA', )>");
+                f1->addChild(item);
+
+                item = new QTreeWidgetItem(f1);
+                item->setIcon(0,iconFunction);
+                item->setToolTip(0,tr("Turkey"));
+                item->setText(0,"NumberToWords (TR)");
+                item->setData(0,Qt::UserRole,"<NumberToWords('TR', )>");
+                f1->addChild(item);
+
                 //------------------Math functions----------------------
                 f1 = new QTreeWidgetItem(rootItem);
                 f1->setIcon(0,iconFolder);
@@ -236,21 +269,30 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
             break;
         }
         case 1: {
-            this->setWindowTitle("Data Group property");
-            ReportBand *band = static_cast<ReportBand *>(widget);
+            this->setWindowTitle(tr("Data Group property"));
+            ReportBand *band = qgraphicsitem_cast<ReportBand *>(widget);
             ui->edtFiledGrouping->setText(band->getGroupingField());
             ui->chkStartLineNum->setChecked(band->getStartNewNumertaion());
             ui->chkStartNewPage->setChecked(band->getStartNewPage());
             break;
         }
         case 2: {
-            this->setWindowTitle("Formatting");
+            this->setWindowTitle(tr("Formatting"));
             QObject::connect(ui->lstCategory, SIGNAL(currentRowChanged(int)), this, SLOT(changeCategory(int)));
             QObject::connect(ui->lstFormat, SIGNAL(currentRowChanged(int)), this, SLOT(changeFormat(int)));
-
             QObject::connect(ui->spnPrecision, SIGNAL(valueChanged(int)), this, SLOT(precisionChanged(int)));
-            //QString value = "N#,###.##8";
-            ui->edtFornatString->setText(value);
+            QObject::connect(ui->chkShowTime, &QCheckBox::clicked, this, [=]() {
+                if (ui->chkShowTime->isChecked())
+                    ui->edtFormatString->setText(ui->edtFormatString->text() + " HH:mm:ss");
+                else
+                    ui->edtFormatString->setText(ui->edtFormatString->text().replace("HH:mm:ss", "").trimmed());
+            });
+
+            QString value = widget->getFormatString();
+            QString tmpValue = value;
+            tmpValue = tmpValue.remove(0,1);
+            ui->edtFormatString->setText(tmpValue);
+
             if (value.isEmpty()) {
                 ui->spnPrecision->setValue(2);
                 ui->lstCategory->setCurrentRow(0);
@@ -259,6 +301,7 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
                 if (value.at(0) == 'N') {
                     ui->lstCategory->setCurrentRow(0);
                     ui->spnPrecision->setValue( value.mid(value.size()-1,1).toInt() );
+
                     if ( value.mid(1,value.size()-2) == "# ###.##")
                         ui->lstFormat->setCurrentRow(0);
                     if ( value.mid(1,value.size()-2) == "#,###.##")
@@ -267,10 +310,28 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
                         ui->lstFormat->setCurrentRow(2);
                     if ( value.mid(1,value.size()-2) == "#.###,##")
                         ui->lstFormat->setCurrentRow(3);
+                } else if (value.at(0) == 'D') {
+                    ui->lstCategory->setCurrentRow(1);
+
+                    // Output format
+                    if (tmpValue.contains("HH:mm:ss"))
+                        ui->chkShowTime->setChecked(true);
+                    for (int r = 0; r < ui->lstFormat->count(); r++)
+                        if (ui->lstFormat->item(r)->data(Qt::UserRole).toString() == tmpValue.replace("HH:mm:ss", "").trimmed())
+                            ui->lstFormat->setCurrentRow(r);
+
+                    // Input format
+                    tmpValue = widget->getInputFormatString();
+                    tmpValue = tmpValue.remove(0,1);
+
+                    for (int r = 0; r < ui->lstInputFormat->count(); r++)
+                        if (ui->lstInputFormat->item(r)->data(Qt::UserRole).toString() == tmpValue)
+                            ui->lstInputFormat->setCurrentRow(r);
                 }
             }
 
             ui->lstCategory->item(0)->setData(Qt::UserRole,"N");
+            ui->lstCategory->item(1)->setData(Qt::UserRole,"D");
             break;
         }
     }
@@ -280,30 +341,42 @@ QString FldPropertyDlg::showThis(int index, GraphicsBox *widget, QString value) 
             case 0:
             case 3: {
                 return ui->treeWidget->selectedItems().at(0)->data(0,Qt::UserRole).toString();
-                break;
             }
             case 1: {
-                ReportBand *band = static_cast<ReportBand *>(widget);
+                auto band = qgraphicsitem_cast<ReportBand *>(widget);
                 band->setGroupingField(ui->edtFiledGrouping->text());
                 band->setStartNewNumeration(ui->chkStartLineNum->checkState());
                 band->setStartNewPage(ui->chkStartNewPage->checkState());
                 return "";
-                break;
             }
             case 2: {
-                return ui->edtFornatString->text();
-                break;
+                widget->setFormatString(ui->lstCategory->currentItem()->data(Qt::UserRole).toString() + ui->edtFormatString->text());
+
+                if (ui->lstCategory->currentRow() == 1)
+                    widget->setInputFormatString(
+                                ui->lstCategory->currentItem()->data(Qt::UserRole).toString() +
+                                ui->lstInputFormat->currentItem()->data(Qt::UserRole).toString() );
+
+                return ui->lstCategory->currentItem()->data(Qt::UserRole).toString() + ui->edtFormatString->text();
             }
             default:
                 return "";
         }
-    } else return "";
+    } else {
+        return "";
+    }
 }
 
-void FldPropertyDlg::changeCategory(int row) {
+void FldPropertyDlg::changeCategory(int row)
+{
     if (row == 0) {
         ui->lstFormat->clear();
         QListWidgetItem *item;
+        ui->spnPrecision->setVisible(true);
+        ui->lblPrecision->setVisible(true);
+        ui->grpInputFormat->setVisible(false);
+        ui->chkShowTime->setVisible(false);
+
         item = new QListWidgetItem("1 234.00", ui->lstFormat);
         item->setData(Qt::UserRole,"# ###.##");
         ui->lstFormat->addItem(item);
@@ -318,24 +391,86 @@ void FldPropertyDlg::changeCategory(int row) {
         ui->lstFormat->addItem(item);
 
         ui->lstFormat->setCurrentRow(0);
+    } else if (row == 1) {
+        ui->lstFormat->clear();
+        QListWidgetItem *item;
+        ui->spnPrecision->setVisible(false);
+        ui->lblPrecision->setVisible(false);
+        ui->grpInputFormat->setVisible(true);
+        ui->chkShowTime->setChecked(false);
+        ui->chkShowTime->setVisible(true);
+
+        item = new QListWidgetItem("31.12.2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"dd.MM.yyyy");
+        item = new QListWidgetItem("12.31.2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"MM.dd.yyyy");
+        item = new QListWidgetItem("12/31/2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"MM/dd/yyyy");
+        item = new QListWidgetItem("2020.12.31", ui->lstFormat);
+        item->setData(Qt::UserRole,"yyyy.MM.dd");
+        item = new QListWidgetItem("2020-12-31", ui->lstFormat);
+        item->setData(Qt::UserRole,"yyyy-MM-dd");
+        item = new QListWidgetItem("20201231", ui->lstFormat);
+        item->setData(Qt::UserRole,"yyyyMMdd");
+        item = new QListWidgetItem("31-Dec-2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"dd-MMM-yyyy");
+        item = new QListWidgetItem("Dec 31, 2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"MMM dd, yyyy");
+        item = new QListWidgetItem("December 31, 2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"MMMM dd, yyyy");
+        item = new QListWidgetItem("Friday, December 31, 2020", ui->lstFormat);
+        item->setData(Qt::UserRole,"dddd, MMMM dd, yyyy");
+
+        item = new QListWidgetItem("31.12.2020", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"dd.MM.yyyy");
+        item = new QListWidgetItem("12.31.2020", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"MM.dd.yyyy");
+        item = new QListWidgetItem("12/31/2020", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"MM/dd/yyyy");
+        item = new QListWidgetItem("2020.12.31", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"yyyy.MM.dd");
+        item = new QListWidgetItem("2020-12-31", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"yyyy-MM-dd");
+        item = new QListWidgetItem("20201231", ui->lstInputFormat);
+        item->setData(Qt::UserRole,"yyyyMMdd");
+
+
+        ui->lstFormat->setCurrentRow(0);
+        ui->lstInputFormat->setCurrentRow(0);
     }
 }
 
-void FldPropertyDlg::changeFormat(int row) {
-    if (row >= 0) {
-        ui->edtFornatString->setText(
-            ui->lstCategory->item(ui->lstCategory->currentRow())->data(Qt::UserRole).toString()+
-            ui->lstFormat->item(row)->data(Qt::UserRole).toString()+
-            ui->spnPrecision->text()
+void FldPropertyDlg::changeFormat(int row)
+{
+    int category = ui->lstCategory->currentRow();
+
+    if (category == 0 && row >= 0) {
+        ui->edtFormatString->setText(
+            ui->lstFormat->item(row)->data(Qt::UserRole).toString() + ui->spnPrecision->text()
         );
-    } else ui->edtFornatString->setText("");
+    } else if (category == 1 && row >= 0) {
+
+        if (ui->chkShowTime->isChecked())
+            ui->edtFormatString->setText(
+                ui->lstFormat->item(row)->data(Qt::UserRole).toString() +  " HH:mm:ss"
+            );
+        else
+            ui->edtFormatString->setText(
+                ui->lstFormat->item(row)->data(Qt::UserRole).toString()
+            );
+
+    } else {
+        ui->edtFormatString->setText("");
+    }
 }
 
-void FldPropertyDlg::precisionChanged(int row) {
+void FldPropertyDlg::precisionChanged(int row)
+{
     Q_UNUSED(row);
     changeFormat(ui->lstFormat->currentRow());
 }
 
-FldPropertyDlg::~FldPropertyDlg() {
+FldPropertyDlg::~FldPropertyDlg()
+{
     delete ui;
 }

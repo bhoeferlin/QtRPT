@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef SQLDESIGNER_H
-#define SQLDESIGNER_H
+#pragma once
 
 #include <QWidget>
 #include <QDomDocument>
@@ -36,8 +35,9 @@ namespace Ui {
     class SqlDesigner;
 }
 
-struct DocumentSet {
-    DiagramDocument* document;
+struct DocumentSet
+{
+    DiagramDocument *document;
     QDomElement element;
 };
 
@@ -46,15 +46,15 @@ class SqlDesigner : public QWidget
     Q_OBJECT
 
 public:
-    explicit SqlDesigner(QDomDocument *xmlDoc, QWidget *parent = 0);
+    explicit SqlDesigner(QSharedPointer<QDomDocument> xmlDoc, QWidget *parent = nullptr);
     void showDSData(QDomElement e);
     void showDSData(int pageNo);
     DiagramDocument *addDiagramDocument(QDomElement e);
-    void loadDiagramDocument(int pageNo, QDomElement e);
+    void loadDataSources(int pageNo, QVector<QDomElement> dsList);
     void removeDiagramDocument(int pageNo);
     void setCurrentPage(int pageNo);
     void clearAll();
-    QDomElement saveParamToXML(QDomDocument *xmlDoc);
+    QVector<QDomElement> saveParamToXML(QSharedPointer<QDomDocument> xmlDoc);
     ~SqlDesigner();
 
 protected:
@@ -69,8 +69,9 @@ private:
     void newDiagramDocument();
     DocumentSet newDocumentSet(QDomElement e);
     QDomElement buildDomElem();
+    QDomElement elemINLINE;
     int m_currentPageNo;
-    QDomDocument *m_xmlDoc;
+    QSharedPointer<QDomDocument> m_xmlDoc;
 
 private slots:
     void rbChecked();
@@ -90,5 +91,3 @@ private slots:
 signals:
     void changed(bool value);
 };
-
-#endif // SQLDESIGNER_H

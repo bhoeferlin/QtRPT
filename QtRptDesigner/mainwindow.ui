@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>C:/Users/Aleksey/Desktop/32.png</normaloff>C:/Users/Aleksey/Desktop/32.png</iconset>
+    <normaloff>../../../Aleksey/Desktop/32.png</normaloff>../../../Aleksey/Desktop/32.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -173,7 +173,7 @@
      <x>0</x>
      <y>0</y>
      <width>1664</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -211,8 +211,8 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actReadme"/>
-    <addaction name="actCheckUpdates"/>
+    <addaction name="actReadmeQtRPT"/>
+    <addaction name="actReadmeQtRptDesigner"/>
     <addaction name="actAbout"/>
    </widget>
    <widget class="QMenu" name="menuService">
@@ -250,6 +250,7 @@
    <addaction name="actNewReportPage"/>
    <addaction name="actDeleteReportPage"/>
    <addaction name="actPageSettings"/>
+   <addaction name="actScriptEditing"/>
    <addaction name="actDataSource"/>
    <addaction name="separator"/>
    <addaction name="actGroup"/>
@@ -307,17 +308,6 @@
    <addaction name="actBorderColor"/>
    <addaction name="actFrameStyle"/>
    <addaction name="separator"/>
-  </widget>
-  <widget class="QToolBar" name="toolBar_2">
-   <property name="windowTitle">
-    <string>toolBar_2</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
   </widget>
   <widget class="QToolBar" name="toolBar_3">
    <property name="windowTitle">
@@ -1012,18 +1002,6 @@
     <string>Group property</string>
    </property>
   </action>
-  <action name="actCheckUpdates">
-   <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/new/prefix1/images/update.png</normaloff>:/new/prefix1/images/update.png</iconset>
-   </property>
-   <property name="text">
-    <string>Check updates</string>
-   </property>
-   <property name="toolTip">
-    <string>Check updates</string>
-   </property>
-  </action>
   <action name="actAddDiagram">
    <property name="checkable">
     <bool>true</bool>
@@ -1144,13 +1122,13 @@
     <string>Add Barcode</string>
    </property>
   </action>
-  <action name="actReadme">
+  <action name="actReadmeQtRPT">
    <property name="icon">
     <iconset resource="images.qrc">
      <normaloff>:/new/prefix1/images/readme.png</normaloff>:/new/prefix1/images/readme.png</iconset>
    </property>
    <property name="text">
-    <string>Readme</string>
+    <string>Readme QtRPT</string>
    </property>
    <property name="toolTip">
     <string>Readme</string>
@@ -1232,6 +1210,30 @@
    </property>
    <property name="toolTip">
     <string>Add CrossTabBD object</string>
+   </property>
+  </action>
+  <action name="actReadmeQtRptDesigner">
+   <property name="icon">
+    <iconset resource="images.qrc">
+     <normaloff>:/new/prefix1/images/readme.png</normaloff>:/new/prefix1/images/readme.png</iconset>
+   </property>
+   <property name="text">
+    <string>Readme QtRptDesigner</string>
+   </property>
+  </action>
+  <action name="actScriptEditing">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="images.qrc">
+     <normaloff>:/new/prefix1/images/script.png</normaloff>:/new/prefix1/images/script.png</iconset>
+   </property>
+   <property name="text">
+    <string>Script  Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Script Editor</string>
    </property>
   </action>
  </widget>

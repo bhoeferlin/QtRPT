@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef RPTBANDOBJECT_H
-#define RPTBANDOBJECT_H
+#pragma once
 
 #include <RptFieldObject.h>
+#include <QObject>
 
 using namespace QtRptName;
 
@@ -32,35 +32,53 @@ class QtRPT;
 class RptPageObject;
 class RptFieldObject;
 
-class RptBandObject
+class RptBandObject : public QObject
 {
+    Q_OBJECT
+    Q_PROPERTY(QString name MEMBER name)
+    Q_PROPERTY(QString groupingField MEMBER groupingField)
+    Q_PROPERTY(bool startNewPage MEMBER startNewPage)
+    Q_PROPERTY(bool showInGroup MEMBER showInGroup)
+    Q_PROPERTY(bool startNewNumeration MEMBER startNewNumeration)
+    Q_PROPERTY(int groupLevel MEMBER groupLevel)
+    Q_PROPERTY(int realHeight MEMBER realHeight)
+    Q_PROPERTY(int height MEMBER height)
+    Q_PROPERTY(int bandNo MEMBER bandNo)
+    Q_PROPERTY(QString dsName MEMBER dsName)
+    Q_PROPERTY(bool sortDataInGroup MEMBER sortDataInGroup)
+    Q_PROPERTY(bool groupHeaderEachlevel MEMBER groupHeaderEachlevel)
+
     friend class QtRPT;
     friend class RptPageObject;
 public:
-    RptBandObject() {}
+    RptBandObject(QObject *parent = nullptr);
     ~RptBandObject();
     QString name;
     QString groupingField;
     bool showInGroup;
+    bool groupHeaderEachlevel;
     bool startNewPage;
     bool startNewNumeration;
+    bool sortDataInGroup;
+    int groupLevel;
     int realHeight;
     int height;
     int width;
     int left;
     int right;
     BandType type;
+    int bandNo;
+    QString dsName;
     void addField(RptFieldObject *field);
-    QList<RptFieldObject*> fieldList;
+    QVector<RptFieldObject*> fieldList;
     RptPageObject *parentReportPage;
+    RptBandObject *clone();
+    Q_INVOKABLE void setStartNewPage(bool value);
 
 private:
 	QtRPT *m_qtrpt;
     void setProperty(QtRPT *qtrpt, QDomElement docElem);
+
 };
 
-Q_DECLARE_METATYPE(RptBandObject)
 QDebug operator<<(QDebug dbg, const RptBandObject &obj);
-
-
-#endif // RPTBANDOBJECT_H

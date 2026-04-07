@@ -1,6 +1,6 @@
 // $Id: SQLHighlighter.cpp 20 2006-10-10 08:24:36Z tb $
 // Copyright 2006 Timo Bingmann
-// Modified 2011 Aleksey Osipov
+// Modified 2011 Oleksii Osypov
 // SQL syntax highlight plugin for QTextEdit
 //
 
@@ -8,7 +8,7 @@
 #define _SQLHighlighter_H_
 
 #include <QtCore/QVector>
-#include <QtCore/QRegExp>
+#include <QRegularExpression>
 
 #include <QtGui/QSyntaxHighlighter>
 #include <QtGui/QTextCharFormat>
@@ -37,7 +37,7 @@ class SQLHighlighter : public QSyntaxHighlighter
     Q_ENUMS(FontHihgligth)
 
 public:
-    SQLHighlighter(class QTextDocument *parent = NULL, QSettings *settings = 0);
+    SQLHighlighter(class QTextDocument *parent = nullptr, QSettings *settings = nullptr);
     FontHihgligthParam getFontColor(int type);
     void saveSettings(QSettings *settings);
 
@@ -46,16 +46,16 @@ protected:
 
 private:
     struct Rule {
-        QRegExp 	pattern;
+        QRegularExpression 	pattern;
         QTextCharFormat format;
         inline Rule() { }
-        inline Rule(QString p, QTextCharFormat f) : pattern(p, Qt::CaseInsensitive), format(f) { }
+        inline Rule(QString p, QTextCharFormat f) : pattern(p, QRegularExpression::CaseInsensitiveOption), format(f) { }
     };
     void fillArray();
 
     QVector<Rule> 	rules;
-    QRegExp 		commentStartExpression;
-    QRegExp 		commentEndExpression;
+    QRegularExpression 		commentStartExpression;
+    QRegularExpression 		commentEndExpression;
     QTextCharFormat commentFormat;
     QList<FontHihgligthParam> lst;
 };

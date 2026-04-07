@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,12 +24,15 @@ limitations under the License.
 #include "XmlViewModel.h"
 #include <QDebug>
 
-XMLViewModel::XMLViewModel(QDomDocument *xmlDoc, QObject *parent) : QStandardItemModel(parent) {
+XMLViewModel::XMLViewModel(QDomDocument *xmlDoc, QObject *parent)
+: QStandardItemModel(parent)
+{
     QDomElement docElem = xmlDoc->documentElement();  //get root element
     insertChilds(docElem, this->invisibleRootItem());
 }
 
-void XMLViewModel::insertChilds(QDomNode node, QStandardItem *parent) {
+void XMLViewModel::insertChilds(QDomNode node, QStandardItem *parent)
+{
     if (node.hasAttributes()) {
         for (int t=0; t<node.attributes().count(); t++) {
             QString str = node.attributes().item(t).toAttr().name();

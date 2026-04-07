@@ -20,7 +20,7 @@
 #include "qzint_global.h"
 #include <QColor>
 #include <QPainter>
-
+#include <QPainterPath>
 
 namespace Zint
 {
@@ -63,6 +63,7 @@ public:
 
 	BorderType borderType();
 	void setBorderType(BorderType border);
+    void setBorderType(int border);
 
 	int borderWidth();
 	void setBorderWidth(int boderWidth);

@@ -5,20 +5,24 @@
     #include "qzint.h"
 #endif
 
-BarCode::BarCode(QWidget *parent) : QWidget(parent) {
+BarCode::BarCode(QWidget *parent)
+: QWidget(parent)
+{
     #ifndef NO_BARCODE
-        bc = 0;
-        QLibrary library("QtZint");
+        bc = nullptr;
+        /*QLibrary library("QtZint");
         if (!library.load())
             qDebug() << library.errorString();
 
         typedef Zint::QZint*(*CreateZint)();
         CreateZint cwf = (CreateZint)library.resolve("createWidget");
-        if (cwf) {
+        if (cwf)
             bc = cwf();
-        } else {
-            qDebug() << "Could not create Zint from the loaded library";
-        }
+        else
+            qDebug() << "Could not create Zint from the loaded library";*/
+
+        bc = new Zint::QZint();
+
     #endif
     m_value = "QtRPT";
     m_BarcodeType = CODE128; //CODE128
@@ -26,13 +30,14 @@ BarCode::BarCode(QWidget *parent) : QWidget(parent) {
     m_height = 50;
 }
 
-void BarCode::paintEvent(QPaintEvent * event) {
+void BarCode::paintEvent(QPaintEvent * event)
+{
     Q_UNUSED(event);
     QPainter painter(this);
     #ifndef NO_BARCODE
-        if (bc == 0) {
+        if (bc == nullptr)
             painter.drawText(QPointF(0,0),"Zint library not found");
-        } else
+        else
             drawBarcode(&painter, 0, 0, this->width(), this->height());
 
     #else
@@ -40,16 +45,17 @@ void BarCode::paintEvent(QPaintEvent * event) {
     #endif
 }
 
-void BarCode::drawBarcode(QPainter *painter, qreal x, qreal y, qreal width, qreal height) {
+void BarCode::drawBarcode(QPainter *painter, qreal x, qreal y, qreal width, qreal height)
+{
     #ifndef NO_BARCODE
-        if (bc == 0) {
+        if (bc == nullptr) {
             painter->drawText(QRectF(x,y,width,height), Qt::AlignCenter,"Zint library not found");
             return;
         }
         bc->setSymbol(m_BarcodeType);
 
         //bc.setPrimaryMessage("dprimaryMessage");  //???
-        bc->setBorderType((Zint::QZint::BorderType)m_FrameType);  //Тип обрамляющей рамки
+        bc->setBorderType((int)m_FrameType);  //Тип обрамляющей рамки
         //bc->setHeight(height);
         bc->setWidth(width);
         bc->setSecurityLevel(0);
@@ -66,25 +72,28 @@ void BarCode::drawBarcode(QPainter *painter, qreal x, qreal y, qreal width, qrea
     #endif
 }
 
-void BarCode::setBarcodeType(BarcodeTypes value) {
+void BarCode::setBarcodeType(BarcodeTypes value)
+{
     m_BarcodeType = value;
     #ifndef NO_BARCODE
-        if (bc != 0)
+        if (bc != nullptr)
             bc->setSymbol(value);
         repaint();
     #endif
 }
 
-void BarCode::setFrameType(FrameTypes value) {
+void BarCode::setFrameType(FrameTypes value)
+{
     m_FrameType = value;
     #ifndef NO_BARCODE
-        if (bc != 0)
-            bc->setBorderType((Zint::QZint::BorderType)m_FrameType);
+        if (bc != nullptr)
+            bc->setBorderType((int)m_FrameType);
         repaint();
     #endif
 }
 
-void BarCode::setHeight(int value) {
+void BarCode::setHeight(int value)
+{
     m_height = value;
     #ifndef NO_BARCODE
         if (bc != 0)
@@ -93,7 +102,8 @@ void BarCode::setHeight(int value) {
     #endif
 }
 
-BarCode::BarcodeTypePairList BarCode::getTypeList() {
+BarCode::BarcodeTypePairList BarCode::getTypeList()
+{
     BarcodeTypePairList list;
     const QMetaObject &mo = staticMetaObject;
     for (int i=0; i < mo.enumerator(0).keyCount(); i++) {
@@ -105,16 +115,17 @@ BarCode::BarcodeTypePairList BarCode::getTypeList() {
     return list;
 }
 
-QString BarCode::getTypeName(BarcodeTypes type) {
-    BarcodeTypePairList list = getTypeList();
-    for (int i=0; i < list.size(); i++) {
-        if (list.at(i).first == type)
-            return list.at(i).second;
-    }
+QString BarCode::getTypeName(BarcodeTypes type)
+{
+    for (const auto &pair : getTypeList())
+        if (pair.first == type)
+            return pair.second;
+
     return QString();
 }
 
-const QStringList BarCode::getTypeNameList() {
+const QStringList BarCode::getTypeNameList()
+{
     QStringList bstyle_text;
         bstyle_text<<"CODE11";
         bstyle_text<<"C25MATRIX";
@@ -190,7 +201,8 @@ const QStringList BarCode::getTypeNameList() {
     return bstyle_text;
 }
 
-BarCode::FrameTypePairList BarCode::getFrameTypeList() {
+BarCode::FrameTypePairList BarCode::getFrameTypeList()
+{
     FrameTypePairList list;
     const QMetaObject &mo = staticMetaObject;
     for (int i=0; i < mo.enumerator(1).keyCount(); i++) {
@@ -202,69 +214,76 @@ BarCode::FrameTypePairList BarCode::getFrameTypeList() {
     return list;
 }
 
-QString BarCode::getFrameTypeName(FrameTypes type) {
+QString BarCode::getFrameTypeName(FrameTypes type)
+{
     const QMetaObject &mo = staticMetaObject;
-    for (int i=0; i < mo.enumerator(1).keyCount(); i++) {
-        if(mo.enumerator(1).value(i) == type)
+    for (int i=0; i < mo.enumerator(1).keyCount(); i++)
+        if (mo.enumerator(1).value(i) == type)
             return mo.enumerator(1).key(i);
-    }
+
     return QString();
 }
 
-QString BarCode::getValue() {
+QString BarCode::getValue()
+{
     return m_value;
 }
 
-void BarCode::setValue(QString value) {
+void BarCode::setValue(QString value)
+{
     m_value = value;
     this->repaint();
 }
 
-BarCode::~BarCode() {
+BarCode::~BarCode()
+{
     #ifndef NO_BARCODE
         delete bc;
     #endif
 }
 
-void BarCode::setProperties() {
+void BarCode::setProperties()
+{
     this->setProperty("BarcodeTypes",m_BarcodeType);
     this->setProperty("FrameTypes",m_FrameType);
 }
 
 //Restore fields from properties
-void BarCode::setParamFromProperties() {
+void BarCode::setParamFromProperties()
+{
     m_BarcodeType = (BarcodeTypes)this->property("BarcodeTypes").toInt();
     m_FrameType = (FrameTypes)this->property("FrameTypes").toInt();
 }
 
-QDataStream &operator<<(QDataStream &stream, const BarCode &obj) {
-    for(int i=0; i<obj.metaObject()->propertyCount(); ++i) {
-        if(obj.metaObject()->property(i).isStored(&obj)) {
+QDataStream &operator<<(QDataStream &stream, const BarCode &obj)
+{
+    for (int i=0; i<obj.metaObject()->propertyCount(); ++i)
+        if (obj.metaObject()->property(i).isStored())
             stream << obj.metaObject()->property(i).read(&obj);
-        }
-    }
-    QList<QByteArray> list = obj.dynamicPropertyNames();
-    for (int i=0; i<list.size(); i++) {
-        stream << obj.property(list.at(i));
-    }
+
+    for (auto &byteArray : obj.dynamicPropertyNames())
+        stream << obj.property(byteArray);
+
     return stream;
 }
 
-QDataStream &operator>>(QDataStream &stream, BarCode &obj) {
+QDataStream &operator>>(QDataStream &stream, BarCode &obj)
+{
     QVariant var;
-    for(int i=0; i<obj.metaObject()->propertyCount(); ++i) {
-        if(obj.metaObject()->property(i).isStored(&obj)) {
+    for (int i=0; i<obj.metaObject()->propertyCount(); ++i) {
+        if (obj.metaObject()->property(i).isStored()) {
             stream >> var;
             if (!var.isNull())
                 obj.metaObject()->property(i).write(&obj, var);
         }
     }
     obj.setProperties();
-    QList<QByteArray> list = obj.dynamicPropertyNames();
-    for (int i=0; i<list.size(); i++) {
+
+    for (auto &byteArray : obj.dynamicPropertyNames()) {
         stream >> var;
-        obj.setProperty(list.at(i),QVariant(var));
+        obj.setProperty(byteArray, QVariant(var));
     }
     obj.setParamFromProperties();
+
     return stream;
 }

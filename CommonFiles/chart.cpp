@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
+Version: 2.0.1
 Web-site: http://www.qtrpt.tk
 Programmer: Aleksey Osipov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2017 Aleksey Osipov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ limitations under the License.
 
 #include "chart.h"
 
-Chart::Chart(QWidget *parent) : QWidget(parent) {    
+Chart::Chart(QWidget *parent)
+: QWidget(parent)
+{
     m_drawGrid = false;
     m_drawHistory = true;
     m_drawCaption = true;
@@ -67,21 +69,26 @@ Chart::Chart(QWidget *parent) : QWidget(parent) {
     qRegisterMetaType<GraphParam>("GraphParam");
     qRegisterMetaType<GraphParamList>("GraphParamList");
 
-    qRegisterMetaTypeStreamOperators<GraphParam>("GraphParam");
-    qRegisterMetaTypeStreamOperators<GraphParamList>("GraphParamList");
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        qRegisterMetaTypeStreamOperators<GraphParam>("GraphParam");
+        qRegisterMetaTypeStreamOperators<GraphParamList>("GraphParamList");
+    #endif
 }
 
-void Chart::setKoef(float koefRes_w, float koefRes_h, float left, float top) {
+void Chart::setKoef(float koefRes_w, float koefRes_h, float left, float top)
+{
     m_koefRes_w = koefRes_w;
     m_koefRes_h = koefRes_h;
     m_left = left;
     m_top = top;
 }
 
-void Chart::loadXML(QDomElement e) {    
+void Chart::loadXML(QDomElement e)
+{
     QDomNode g = e.firstChild();
     if (e.hasChildNodes())
         clearData();
+
     while(!g.isNull()) {
         QDomElement ge = g.toElement(); // try to convert the node to an element.
 
@@ -96,17 +103,20 @@ void Chart::loadXML(QDomElement e) {
     }
 }
 
-void Chart::clearData() {
+void Chart::clearData()
+{
     listOfGraph.clear();
 }
 
-void Chart::setData(GraphParam param, float value100Percent) {
+void Chart::setData(GraphParam param, float value100Percent)
+{
     listOfGraph.append(param);
     float maxValue = 0;
     for (int i=0; i < listOfGraph.size(); i++) {
         if (maxValue < listOfGraph.at(i).valueReal)
             maxValue = listOfGraph.at(i).valueReal;
     }
+
     for (int i=0; i < listOfGraph.size(); i++) {
         if (value100Percent == 0) {
             listOfGraph[i].valuePercent = listOfGraph.at(i).valueReal / maxValue;
@@ -118,7 +128,14 @@ void Chart::setData(GraphParam param, float value100Percent) {
     }
 }
 
-void Chart::setParams(bool drawGrid, bool drawHistory, bool drawCaption, bool drawGraphCaption, bool showPercent, QString caption, bool autoFillData) {
+void Chart::setParams(bool drawGrid,
+                      bool drawHistory,
+                      bool drawCaption,
+                      bool drawGraphCaption,
+                      bool showPercent,
+                      QString caption,
+                      bool autoFillData)
+{
     m_caption = caption;
     m_drawGrid = drawGrid;
     m_drawHistory = drawHistory;
@@ -127,11 +144,10 @@ void Chart::setParams(bool drawGrid, bool drawHistory, bool drawCaption, bool dr
     m_showPercent = showPercent;
     m_autoFillData = autoFillData;
 
-    if (drawHistory) {
+    if (drawHistory)
         m_rightSpaceWidth = 110;
-    } else {
+    else
         m_rightSpaceWidth = 30;
-    }
 
     if (m_drawGraphCaption) {
         //m_bottomSpaceHeight = 30;
@@ -142,58 +158,55 @@ void Chart::setParams(bool drawGrid, bool drawHistory, bool drawCaption, bool dr
     m_bottomSpaceHeight = 10;    
 }
 
-GraphParamList Chart::getGraphParamList() {
+GraphParamList Chart::getGraphParamList()
+{
     return listOfGraph;
 }
 
-QVariant Chart::getParam(ChartParam param) {
+QVariant Chart::getParam(ChartParam param)
+{
     switch(param) {
-        case DrawGrid: {
+        case DrawGrid:
             return m_drawGrid;
             break;
-        }
-        case ShowCaption: {
+        case ShowCaption:
             return m_drawCaption;
             break;
-        }
-        case ShowLegend: {
+        case ShowLegend:
             return m_drawHistory;
             break;
-        }
-        case ShowGraphCaption: {
+        case ShowGraphCaption:
             return m_drawGraphCaption;
             break;
-        }
-        case ShowPercent: {
+        case ShowPercent:
             return m_showPercent;
             break;
-        }
-        case Caption: {
+        case Caption:
             return m_caption;
             break;
-        }
-        case AutoFillData: {
+        case AutoFillData:
             return m_autoFillData;
             break;
-        }
         default: return QVariant();
     }
 }
 
-void Chart::paintEvent(QPaintEvent * event) {
+void Chart::paintEvent(QPaintEvent * event)
+{
     Q_UNUSED(event);
 
     QStyleOption opt;
-    opt.init(this);
+    opt.initFrom(this);
     QPainter p(this);
     style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
 
-    QWidget *widget = qobject_cast<QWidget *>(this);
+    auto widget = qobject_cast<QWidget *>(this);
     QPainter painter(widget);
     paintChart(&painter);
 }
 
-void Chart::paintChart(QPainter *painter) {
+void Chart::paintChart(QPainter *painter)
+{
     int captionHeight = 50 * m_koefRes_h;
     int leftSpaceWidth = 20 * m_koefRes_w;
     m_rightSpaceWidth = m_rightSpaceWidth * m_koefRes_w;
@@ -201,7 +214,7 @@ void Chart::paintChart(QPainter *painter) {
 
     QFont font(this->font());
     int cor = QFontMetrics(font).height() * m_koefRes_h;
-    if (m_drawCaption) {        
+    if (m_drawCaption) {
         font.setBold(true);
         //font.setItalic(processHighligthing(e, FontItalic).toInt());
         painter->setFont(font);
@@ -250,6 +263,7 @@ void Chart::paintChart(QPainter *painter) {
                     txt = QString::number(listOfGraph.at(i).valuePercent*100,'f',1)+"%";
                 else
                     txt = QString::number(listOfGraph.at(i).valueReal);
+
                 QRectF textRect(m_left + widthOfGraph*i+1+leftSpaceWidth,   //x
                                 m_top + heightOfGraph*listOfGraph.at(i).valuePercent*-1 + this->height()-20*m_koefRes_h-m_bottomSpaceHeight,
                                 widthOfGraph+5*m_koefRes_w,                      //width
@@ -289,7 +303,8 @@ void Chart::paintChart(QPainter *painter) {
         }
 }
 
-void Chart::setProperties() {
+void Chart::setProperties()
+{
     this->setProperty("m_caption",m_caption);
     this->setProperty("m_drawGrid",m_drawGrid);
     this->setProperty("m_drawHistory",m_drawHistory);
@@ -305,22 +320,26 @@ void Chart::setProperties() {
     this->setProperty("m_koefRes_w",m_koefRes_w);
     this->setProperty("m_left",m_left);
     this->setProperty("m_top",m_top);
+
     QVariant v = QVariant::fromValue<GraphParamList>(listOfGraph);
     this->setProperty("listOfGraph",v);
 }
 
-static QDataStream &operator<<(QDataStream &out, const GraphParam &t) {
+static QDataStream &operator<<(QDataStream &out, const GraphParam &t)
+{
     out << t.color << t.valuePercent << t.valueReal << t.caption << t.valueString;
     return out;
 }
 
-static QDataStream &operator>>(QDataStream &in, GraphParam &t) {
+static QDataStream &operator>>(QDataStream &in, GraphParam &t)
+{
     in >> t.color >> t.valuePercent >> t.valueReal >> t.caption >> t.valueString;
     return in;
 }
 
 //Restore fields from properties
-void Chart::setParamFromProperties() {
+void Chart::setParamFromProperties()
+{
     m_caption = this->property("m_caption").toString();
     m_drawGrid = this->property("m_drawGrid").toBool();
     m_drawHistory = this->property("m_drawHistory").toBool();
@@ -339,34 +358,51 @@ void Chart::setParamFromProperties() {
     listOfGraph = this->property("listOfGraph").value<GraphParamList>();
 }
 
-QDataStream &operator<<(QDataStream &stream, const Chart &obj) {
-    for(int i=0; i<obj.metaObject()->propertyCount(); ++i) {
-        if(obj.metaObject()->property(i).isStored(&obj)) {
-            stream << obj.metaObject()->property(i).read(&obj);
-        }        
-    }
-    QList<QByteArray> list = obj.dynamicPropertyNames();
-    for (int i=0; i<list.size(); i++) {
-        stream << obj.property(list.at(i));
-    }    
+QDataStream &operator<<(QDataStream &stream, const Chart &obj)
+{
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        for (int i=0; i<obj.metaObject()->propertyCount(); ++i)
+            if (obj.metaObject()->property(i).isStored(&obj))
+                stream << obj.metaObject()->property(i).read(&obj);
+    #else
+        for (int i=0; i<obj.metaObject()->propertyCount(); ++i)
+            if (obj.metaObject()->property(i).isStored())
+                stream << obj.metaObject()->property(i).read(&obj);
+    #endif
+
+    for (auto &byteArray : obj.dynamicPropertyNames())
+        stream << obj.property(byteArray);
+
     return stream;
 }
 
-QDataStream &operator>>(QDataStream &stream, Chart &obj) {
+QDataStream &operator>>(QDataStream &stream, Chart &obj)
+{
     QVariant var;
-    for(int i=0; i<obj.metaObject()->propertyCount(); ++i) {
-        if(obj.metaObject()->property(i).isStored(&obj)) {
-            stream >> var;
-            if (!var.isNull())
-                obj.metaObject()->property(i).write(&obj, var);
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        for (int i=0; i<obj.metaObject()->propertyCount(); ++i) {
+            if (obj.metaObject()->property(i).isStored(&obj)) {
+                stream >> var;
+                if (!var.isNull())
+                    obj.metaObject()->property(i).write(&obj, var);
+            }
         }
-    }
+    #else
+        for (int i=0; i<obj.metaObject()->propertyCount(); ++i) {
+            if (obj.metaObject()->property(i).isStored()) {
+                    stream >> var;
+                    if (!var.isNull())
+                    obj.metaObject()->property(i).write(&obj, var);
+            }
+        }
+    #endif
     obj.setProperties();
-    QList<QByteArray> list = obj.dynamicPropertyNames();
-    for (int i=0; i<list.size(); i++) {
+
+    for (auto &byteArray : obj.dynamicPropertyNames()) {
         stream >> var;
-        obj.setProperty(list.at(i),QVariant(var));
+        obj.setProperty(byteArray, QVariant(var));
     }
     obj.setParamFromProperties();
+
     return stream;
 }

@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ namespace Ui {
 }
 
 struct PageSetting {
+    QString pageFormat;
     float marginsLeft;
     float marginsRight;
     float marginsTop;
@@ -39,6 +40,9 @@ struct PageSetting {
     float pageHeight;
     int pageOrientation;
     bool border;
+    bool watermark;
+    double watermarkOpacity;
+    QPixmap watermarkPixmap;
     int borderWidth;
     QString borderColor;
     QString borderStyle;
@@ -49,7 +53,7 @@ class PageSettingDlg : public QDialog
     Q_OBJECT
 
 public:
-    explicit PageSettingDlg(QWidget *parent = 0);
+    explicit PageSettingDlg(QWidget *parent = nullptr);
     ~PageSettingDlg();
     void showThis(PageSetting pageSetting);
     PageSetting pageSetting;
@@ -66,12 +70,15 @@ private:
     double koef;
     Ui::PageSettingDlg *ui;
     QString strColor;
+    QPixmap m_watermarkPixmap;
     void saveSettings();
+    void scaleImage();
 
 private slots:
     void changeOrientation();
     void pageSizeChanged(int index);
     void selectColor();
+    void changeWatermark();
 
 };
 

@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +24,16 @@ limitations under the License.
 #include "exampledlg14.h"
 #include "ui_exampledlg14.h"
 
-ExampleDlg14::ExampleDlg14(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg14) {
+ExampleDlg14::ExampleDlg14(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg14)
+{
     ui->setupUi(this);
     QObject::connect(ui->btnPrint, SIGNAL(clicked()), this, SLOT(print()));
 }
 
-void ExampleDlg14::print() {
-    QtRPT *report = new QtRPT(this);
+void ExampleDlg14::print()
+{
+    auto report = QtRPT::createSPtr(this);
 
     //Make a page of report
     RptPageObject *page = new RptPageObject();
@@ -188,13 +192,21 @@ void ExampleDlg14::print() {
     pf->value = "<Page> of <TotalPages>";
     band4->addField(pf);  //Append field to the PageFooterBand
 
-    report->recordCount << 4;
-    QObject::connect(report, SIGNAL(setField(RptFieldObject &)), this, SLOT(setField(RptFieldObject &)));
+    QObject::connect(report.data(), SIGNAL(setField(RptFieldObject &)), this, SLOT(setField(RptFieldObject &)));
+    QObject::connect(report.data(), SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
+
 
     report->printExec();
 }
 
-void ExampleDlg14::setField(RptFieldObject &fieldObject) {
+void ExampleDlg14::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = 4;
+}
+
+void ExampleDlg14::setField(RptFieldObject &fieldObject)
+{
     if (fieldObject.name == "c1") {
         fieldObject.value = "Column 1 Row "+QString::number(fieldObject.recNo()+1);
         if (fieldObject.recNo() == 0)
@@ -241,6 +253,7 @@ void ExampleDlg14::setField(RptFieldObject &fieldObject) {
     }
 }
 
-ExampleDlg14::~ExampleDlg14() {
+ExampleDlg14::~ExampleDlg14()
+{
     delete ui;
 }

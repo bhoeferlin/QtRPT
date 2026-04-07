@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +26,9 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg4::ExampleDlg4(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg4) {
+ExampleDlg4::ExampleDlg4(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg4)
+{
     ui->setupUi(this);
 
     ui->tableWidget->setRowCount(20);
@@ -53,7 +56,8 @@ ExampleDlg4::ExampleDlg4(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
     }
 }
 
-void ExampleDlg4::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg4::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     Q_UNUSED(reportPage);
     if (paramName == "NN")
         paramValue = recNo+1;
@@ -75,7 +79,8 @@ void ExampleDlg4::setValue(const int recNo, const QString paramName, QVariant &p
     }
 }
 
-void ExampleDlg4::print() {
+void ExampleDlg4::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
@@ -83,16 +88,24 @@ void ExampleDlg4::print() {
 
     QString fileName = dir.absolutePath()+"/examples_report/example4.xml";
     report = new QtRPT(this);
-    report->recordCount << ui->tableWidget->rowCount();
+
     if (report->loadReport(fileName) == false) {
         qDebug()<<"Report file not found";
     }
     QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
+    QObject::connect(report, SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
     report->printExec();
 
 }
 
-ExampleDlg4::~ExampleDlg4() {
+void ExampleDlg4::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = ui->tableWidget->rowCount();
+}
+
+ExampleDlg4::~ExampleDlg4()
+{
     delete ui;
 }

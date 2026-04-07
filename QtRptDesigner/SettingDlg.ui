@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>368</width>
-    <height>228</height>
+    <width>364</width>
+    <height>320</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -148,12 +148,17 @@
           </item>
           <item>
            <property name="text">
-            <string>Portuguese</string>
+            <string>Italian</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>Russian Русский</string>
+            <string>Poland</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Portuguese</string>
            </property>
           </item>
           <item>
@@ -189,10 +194,15 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="chkUpdates">
-     <property name="text">
-      <string>Check updates during start application</string>
+    <widget class="QGroupBox" name="grpFont">
+     <property name="title">
+      <string>Default font</string>
      </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <layout class="QHBoxLayout" name="fntLayout"/>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>

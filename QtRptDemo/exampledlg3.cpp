@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +26,9 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg3::ExampleDlg3(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg3) {
+ExampleDlg3::ExampleDlg3(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg3)
+{
     ui->setupUi(this);
     ui->edtFirstName->setText("Aleksey");
     ui->edtLastName->setText("Osipov");
@@ -39,16 +42,15 @@ ExampleDlg3::ExampleDlg3(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
 
     QString fileName = dir.absolutePath()+"/examples_report/example3.xml";
     report = new QtRPT(this);
-    if (report->loadReport(fileName) == false) {
-        qDebug()<<"Report file not found";
-    }
+    report->loadReport(fileName);
+
     QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
 
     printer = new QPrinter;
     printer->setOutputFormat(QPrinter::PdfFormat);
-    printer->setOrientation(QPrinter::Portrait);
-    printer->setPaperSize(QPrinter::A4);
+    printer->setPageOrientation(QPageLayout::Portrait);
+    printer->setPageSize(QPageSize(QPageSize::A4));
     printer->setFullPage(true);
 
     preview = new QPrintPreviewWidget(printer, this);
@@ -60,9 +62,11 @@ ExampleDlg3::ExampleDlg3(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
     updatePreview();
 }
 
-void ExampleDlg3::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg3::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     Q_UNUSED(recNo);
     Q_UNUSED(reportPage);
+
     if (paramName == "FirstName")
         paramValue = ui->edtFirstName->text();
     if (paramName == "LastName")
@@ -71,10 +75,12 @@ void ExampleDlg3::setValue(const int recNo, const QString paramName, QVariant &p
         paramValue = ui->edtEmail->text();
 }
 
-void ExampleDlg3::updatePreview() {
+void ExampleDlg3::updatePreview()
+{
     preview->updatePreview();
 }
 
-ExampleDlg3::~ExampleDlg3() {
+ExampleDlg3::~ExampleDlg3()
+{
     delete ui;
 }

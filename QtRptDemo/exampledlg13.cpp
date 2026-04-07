@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,12 +26,16 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg13::ExampleDlg13(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg13) {
+ExampleDlg13::ExampleDlg13(QWidget *parent)
+    : QDialog(parent),
+      ui(new Ui::ExampleDlg13)
+{
     ui->setupUi(this);
     QObject::connect(ui->btnPrint, SIGNAL(clicked()), this, SLOT(print()));
 }
 
-void ExampleDlg13::print() {
+void ExampleDlg13::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
@@ -38,8 +43,11 @@ void ExampleDlg13::print() {
 
     QString fileName = dir.absolutePath()+"/examples_report/example13.xml";
     QtRPT *report = new QtRPT(this);
-    report->recordCount << 3;
+
     QObject::connect(report, SIGNAL(setField(RptFieldObject &)), this, SLOT(setField(RptFieldObject &)));
+    QObject::connect(report, SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
+
     if (report->loadReport(fileName) == false) {
         qDebug()<<"Report file not found";
         return;
@@ -47,7 +55,13 @@ void ExampleDlg13::print() {
     report->printExec();
 }
 
-void ExampleDlg13::setField(RptFieldObject &fieldObject) {
+void ExampleDlg13::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = 3;
+}
+
+void ExampleDlg13::setField(RptFieldObject &fieldObject)
+{
     RptFieldObject *fieldObject2 = fieldObject.parentBand->parentReportPage->findFieldObjectByName("field2");
 
     if (fieldObject.name == "field1") {
@@ -133,6 +147,7 @@ void ExampleDlg13::setField(RptFieldObject &fieldObject) {
     }
 }
 
-ExampleDlg13::~ExampleDlg13() {
+ExampleDlg13::~ExampleDlg13()
+{
     delete ui;
 }

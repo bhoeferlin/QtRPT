@@ -17,7 +17,8 @@
 #include "qzint.h"
 #include <stdio.h>
 
-Zint::QZint* createWidget() {
+Zint::QZint* createWidget()
+{
      Zint::QZint *z = new  Zint::QZint();
      return z;
 }
@@ -25,24 +26,24 @@ Zint::QZint* createWidget() {
 namespace Zint
 {
 
-static const qreal maxi_diagonal=11;
-static const qreal maxi_width=1.73205807568877*maxi_diagonal/2;
-static const char* fontstyle="Arial";
-static const int fontPixelSizeSmall=6;
-static const int fontPixelSizeLarge=8;
+static const qreal maxi_diagonal = 11;
+static const qreal maxi_width = 1.73205807568877*maxi_diagonal/2;
+static const char* fontstyle = "Arial";
+static const int fontPixelSizeSmall = 6;
+static const int fontPixelSizeLarge = 8;
 
 QZint::QZint()
 {
-	m_symbol=BARCODE_CODE128;
-	m_height=50;
-	m_border=NO_BORDER;
-	m_borderWidth=1;
-	m_securityLevel=-1;
-	m_pdf417CodeWords=928;
-	m_fgColor=Qt::black;
-	m_bgColor=Qt::white;
-	m_zintSymbol=0;
-	m_error=0;
+    m_symbol = BARCODE_CODE128;
+    m_height = 50;
+    m_border = NO_BORDER;
+    m_borderWidth = 1;
+    m_securityLevel = -1;
+    m_pdf417CodeWords = 928;
+    m_fgColor = Qt::black;
+    m_bgColor = Qt::white;
+    m_zintSymbol = 0;
+    m_error = 0;
 	m_input_mode = UNICODE_MODE;
 	m_scale = 1.0;
 	m_option_3 = 0;
@@ -104,6 +105,7 @@ int  QZint::symbol()
 {
 	return m_symbol;
 }
+
 void QZint::setSymbol(int symbol)
 {
 	m_symbol=symbol;
@@ -173,6 +175,7 @@ QColor QZint::fgColor()
 {
 	return m_fgColor;
 }
+
 void QZint::setFgColor(const QColor & fgColor)
 {
 	m_fgColor=fgColor;
@@ -182,6 +185,7 @@ QColor QZint::bgColor()
 {
 	return m_bgColor;
 }
+
 void QZint::setBgColor(const QColor & bgColor)
 {
 	m_bgColor=bgColor;
@@ -191,15 +195,22 @@ QZint::BorderType QZint::borderType()
 {
 	return m_border;
 }
+
 void QZint::setBorderType(BorderType border)
 {
 	m_border=border;
+}
+
+void QZint::setBorderType(int border)
+{
+    m_border = static_cast<BorderType>(border);
 }
 
 int QZint::borderWidth()
 {
 	return m_borderWidth;
 }
+
 void QZint::setBorderWidth(int boderWidth)
 {
 	if (boderWidth<1 || boderWidth>16)
@@ -216,6 +227,7 @@ int QZint::pdf417CodeWords()
 {
 	return m_pdf417CodeWords;
 }
+
 void QZint::setPdf417CodeWords(int pdf417CodeWords)
 {
 	m_pdf417CodeWords=pdf417CodeWords;
@@ -225,6 +237,7 @@ int QZint::securityLevel()
 {
 	return m_securityLevel;
 }
+
 void QZint::setSecurityLevel(int securityLevel)
 {
 	m_securityLevel=securityLevel;

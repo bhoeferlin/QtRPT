@@ -61,7 +61,7 @@ public:
 
     QList<DiagramItem *> selectedItems();
 
-    void save(QDomDocument *xmlDoc, QDomElement element);
+    void save(QSharedPointer<QDomDocument> xmlDoc, QDomElement element);
     bool load(QDomElement element);
 
     //QString fileName() { return m_fileName; }
@@ -84,17 +84,17 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
-    void drawBackground(QPainter * painter, const QRectF & rect);
-    void dragEnterEvent( QGraphicsSceneDragDropEvent * event );
-    void dragMoveEvent ( QGraphicsSceneDragDropEvent * event );
-    void dropEvent ( QGraphicsSceneDragDropEvent * event );
-    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event );
+    void drawBackground(QPainter *painter, const QRectF &rect);
+    void dragEnterEvent(QGraphicsSceneDragDropEvent *event);
+    void dragMoveEvent(QGraphicsSceneDragDropEvent *event);
+    void dropEvent(QGraphicsSceneDragDropEvent *event);
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event);
 
 private:
     class DiagramDocumentPrivate;
     DiagramDocumentPrivate *const d;
 
-    void updateLines(QSet<DiagramObject *> objects);
+    void updateLines(QSet<DiagramObject*> objects);
 
     bool m_trackingMoves;
     QMap<DiagramItem *, QPointF> m_movedItems;

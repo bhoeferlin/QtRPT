@@ -1,12 +1,12 @@
 /*
 Name: XYZ
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
+Version: 3.0.0
+Web-site: https://qtrpt.sourceforge.io
 Programmer: Aleksey Osipov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2022 Aleksey Osipov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

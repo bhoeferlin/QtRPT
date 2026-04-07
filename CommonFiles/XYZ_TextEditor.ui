@@ -322,7 +322,9 @@
         <string>Font</string>
        </property>
        <property name="currentFont">
-        <font/>
+        <font>
+         <family>Arial</family>
+        </font>
        </property>
       </widget>
      </item>
@@ -333,6 +335,9 @@
        </property>
        <property name="editable">
         <bool>true</bool>
+       </property>
+       <property name="currentText">
+        <string>6</string>
        </property>
        <property name="currentIndex">
         <number>0</number>
@@ -464,10 +469,24 @@
     </layout>
    </item>
    <item>
-    <widget class="QTextEdit" name="textEdit"/>
+    <widget class="XYZTextEdit" name="textEdit">
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>XYZTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header location="global">XYZ_TextEdit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../QtRptDesigner/images.qrc"/>
  </resources>

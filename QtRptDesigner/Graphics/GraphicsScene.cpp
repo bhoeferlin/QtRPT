@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,9 +25,13 @@ limitations under the License.
 #include <QApplication>
 #include <QSettings>
 #include "mainwindow.h"
-#include<QDebug>
+#include <QDebug>
 
-GraphicsScene::GraphicsScene(QObject *parent) : QGraphicsScene(parent) {
+GraphicsScene::GraphicsScene(QObject *parent)
+: QGraphicsScene(parent)
+{
+    setItemIndexMethod(BspTreeIndex);
+
     sceneMode = SelectObject;
     m_trackingMoves = false;
 
@@ -35,117 +39,117 @@ GraphicsScene::GraphicsScene(QObject *parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
 }
 
-//void GraphicsScene::setBackground(QString path) {
-//    if (m_backgroundItem != 0 ) {
-//        this->removeItem(m_backgroundItem);
-//        m_backgroundItem = 0;
-//    }
+void GraphicsScene::addItem(QGraphicsItem *item)
+{
+    auto helper = dynamic_cast<GraphicsHelperClass*>(item);
+    QObject::connect(helper, SIGNAL(itemRemoving()), this, SLOT(itemRemoving()));
 
-//    m_backgroundItem = new QGraphicsPixmapItem();
-//    this->addItem(m_backgroundItem);
-//    m_backgroundPath = path;
-//    QPixmap pixmap(path);
-//    m_backgroundItem->setPixmap(pixmap);
-//}
-
-void GraphicsScene::addItem(QGraphicsItem * item) {
-    if (item->type() == ItemType::GLine) {
-        GraphicsLine *line = static_cast<GraphicsLine*>(item);
-        QObject::connect(line, SIGNAL(itemRemoving()), this, SLOT(itemRemoving()));
-        //connect(line, SIGNAL(itemChanged(QGraphicsItem*)), this, SIGNAL(itemChanged(QGraphicsItem*)));
-    }
-    if (item->type() == ItemType::GBox || item->type() == ItemType::GBand) {
-        GraphicsBox *box = static_cast<GraphicsBox*>(item);
-        QObject::connect(box, SIGNAL(itemRemoving()), this, SLOT(itemRemoving()));
-        //connect(box, SIGNAL(itemChanged(QGraphicsItem*)), this, SIGNAL(itemChanged(QGraphicsItem*)));
-    }
     QGraphicsScene::addItem(item);
 }
 
-void GraphicsScene::setMode(Mode mode){
+void GraphicsScene::setMode(Mode mode)
+{
     sceneMode = mode;
 }
 
-void GraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent *event){
+void GraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
     emit sceneClick();
     m_movedItems.clear();
     m_trackingMoves = true;
 
-    QGraphicsItem *pItem = itemAt(event->scenePos(), this->views().at(0)->transform() );
-    if (pItem == 0) return;
+    QSettings settings(QCoreApplication::applicationDirPath()+"/setting.ini",QSettings::IniFormat);
+    //else if (tc.selectedText()[0].isSpace())
+
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+        settings.setIniCodec("UTF-8");
+    #endif
+
+    auto pItem = itemAt(event->scenePos(), this->views().at(0)->transform() );
+    if (pItem == nullptr)
+        return;
     if (pItem->type() == ItemType::GBox)
         pItem = pItem->parentItem();
 
     QPointF origPoint = pItem->mapFromScene(event->scenePos());
 
-    if(sceneMode == Mode::DrawLine) {
+    if (sceneMode == Mode::DrawLine) {
         QPointF startPoint(0,0);
-        GraphicsLine *newLine = new GraphicsLine();
+        auto newLine = new GraphicsLine();
         newLine->setFieldType(m_newFieldType);
         newLine->setArrow(QtRptName::ArrowStart, newLineArrowStart);
         newLine->setArrow(QtRptName::ArrowEnd, newLineArrowEnd);
         newLine->setPos(startPoint);
         newLine->addPoint(origPoint);
         newLine->addPoint(origPoint);
-        //addItem(newLine);
-        //newLine->setParentItem(pItem);
-        //band->newFieldTreeItem(newLine);
+
         m_undoStack->push(new AddCommand(newLine, this, pItem));
-        newLine->setSelected(true);
+
         emit itemAdded(newLine);
         emit sceneModeChanged(newLine, Mode::SelectObject);
+
+        newLine->setSelected(true);
         setMode(Mode::SelectObject);
         m_trackingMoves = false;
     }
-    if(sceneMode == DrawContainer) {
-        GraphicsBox *graphicsBox = new GraphicsBox();
+    if (sceneMode == DrawContainer) {
+        QFont fnt;
+        fnt.setPointSizeF(settings.value("FontSize", 8).toInt());
+        fnt.setFamily(settings.value("FontName", "MS Shell Dlg 2").toString());
+
+        auto graphicsBox = new GraphicsBox();
         graphicsBox->setFieldType(m_newFieldType);
         graphicsBox->setPos(origPoint);
         graphicsBox->setMenu(m_newFieldMenu);
-        //addItem(graphicsBox);
-        //graphicsBox->setParentItem(pItem);
-        //band->newFieldTreeItem(graphicsBox);
+        graphicsBox->setFont(fnt);
+
         m_undoStack->push(new AddCommand(graphicsBox, this, pItem));
-        graphicsBox->setSelected(true);
+
         emit itemAdded(graphicsBox);
         emit sceneModeChanged(graphicsBox, Mode::SelectObject);
+
+        graphicsBox->setSelected(true);
         setMode(Mode::SelectObject);
         m_trackingMoves = false;
+    }
+
+    //Added to prevent lost focus on right click on the item
+    if (event->button() != Qt::LeftButton) {
+        event->accept();
+        return;
     }
 
     QGraphicsScene::mousePressEvent(event);
 }
 
-void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
+void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
     emit mousePos(event->scenePos());
     QGraphicsScene::mouseMoveEvent(event);
 }
 
-void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
+void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
     setMode(Mode::SelectObject);
     QApplication::restoreOverrideCursor();
 
-    if (sceneMode == Mode::SelectObject) {
-        if (QApplication::keyboardModifiers() != Qt::ControlModifier) {
-//            GraphicsBox *b = static_cast<GraphicsBox*>(itemAt(event->scenePos(), this->views().at(0)->transform()));
-//            if (b == 0 or b->type() == 7) {  //Make image transparent for mouse clicking
-//                QApplication::restoreOverrideCursor();
-//                this->clearSelection();
-//                emit itemSelected(0);
-//            }
+    if (sceneMode == Mode::SelectObject && QApplication::keyboardModifiers() != Qt::ControlModifier) {
+        if (!itemAt(event->scenePos(), this->views().at(0)->transform())) {
+            itemSelect(nullptr);
+            return;
         }
     }
 
-    for(auto itm : m_movedItems) {
+    for (auto &itm : m_movedItems) {
         if (itm.item->type() == ItemType::GBox) {
-            GraphicsBox *box = static_cast<GraphicsBox*>(itm.item);
+            auto box = static_cast<GraphicsBox*>(itm.item);
             itm.newHeight = box->getHeight();
             itm.newWidth = box->getWidth();
             itm.newPos = box->pos();
             m_undoStack->push(new MoveGItemCommand(itm));
         }
         if (itm.item->type() == ItemType::GLine) {
-            GraphicsLine *line = static_cast<GraphicsLine*>(itm.item);
+            auto line = static_cast<GraphicsLine*>(itm.item);
             itm.newPointList = line->getPointList();
             itm.newPos = line->pos();
             m_undoStack->push(new MoveLineCommand(itm));
@@ -156,14 +160,30 @@ void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event){
     m_trackingMoves = false;
 }
 
-void GraphicsScene::keyPressEvent(QKeyEvent *event){
-    if(event->key() == Qt::Key_Delete) {
+void GraphicsScene::itemSelect(QGraphicsItem *item)
+{
+    if (item == nullptr) {
+        this->clearSelection();
+        m_selectedItems.clear();
+    } else {
+        if (QApplication::keyboardModifiers() != Qt::ControlModifier)
+            m_selectedItems.clear();
+
+        m_selectedItems.append(item);
+    }
+
+    emit itemSelected(item);
+}
+
+void GraphicsScene::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Delete) {
         m_undoStack->push(new DelItemCommand(this));
         update();
         return;
-    } /*else
-        QGraphicsScene::keyPressEvent(event);*/
-    for(auto item : this->items()) {
+    }
+
+    for (auto &item : this->items()) {
         bool isSelected = false;
         GraphicsBox *box = nullptr;
         if (item->type() == ItemType::GBox || item->type() == ItemType::GBand) {
@@ -191,7 +211,6 @@ void GraphicsScene::keyPressEvent(QKeyEvent *event){
                         if (line != nullptr)
                             line->setLength(line->getLength()-1);
                     }
-                    getMW()->setReportChanged();
                 }
                 if(event->key() == Qt::Key_Up) {
                     if (QApplication::keyboardModifiers() == Qt::ControlModifier && item->type() != ItemType::GBand) {
@@ -204,7 +223,6 @@ void GraphicsScene::keyPressEvent(QKeyEvent *event){
                         if (box != nullptr)
                             box->setHeight(box->getHeight()-1);
                     }
-                    getMW()->setReportChanged();
                 }
                 if(event->key() == Qt::Key_Right && item->type() != ItemType::GBand) {
                     if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
@@ -219,7 +237,6 @@ void GraphicsScene::keyPressEvent(QKeyEvent *event){
                         if (line != nullptr)
                             line->setLength(line->getLength()+1);
                     }
-                    getMW()->setReportChanged();
                 }
                 if(event->key() == Qt::Key_Down) {
                     if (QApplication::keyboardModifiers() == Qt::ControlModifier && item->type() != ItemType::GBand) {
@@ -232,15 +249,23 @@ void GraphicsScene::keyPressEvent(QKeyEvent *event){
                         if (box != nullptr)
                             box->setHeight(box->getHeight()+1);
                     }
-                    getMW()->setReportChanged();
                 }
             }
         }
-        emit itemResized(item);
+
+        if (isSelected
+            && (QApplication::keyboardModifiers() == Qt::ControlModifier || QApplication::keyboardModifiers() == Qt::ShiftModifier)
+            && (event->key() == Qt::Key_Left || event->key() == Qt::Key_Up || event->key() == Qt::Key_Right || event->key() == Qt::Key_Down))
+        {
+            emit itemResized(item);
+            auto mw = MainWindow::instance();
+            mw->setReportChanged();
+        }
     }
 }
 
-void GraphicsScene::itemRemoving() {
+void GraphicsScene::itemRemoving()
+{
     //Из поп-апа
     //GraphicsHelperClass *helper = qobject_cast<GraphicsHelperClass*>(sender());
     //QGraphicsItem *item = static_cast<QGraphicsItem*>(helper->graphicsItem);
@@ -249,45 +274,73 @@ void GraphicsScene::itemRemoving() {
     update();
 }
 
-void GraphicsScene::removeItem(QGraphicsItem *item) {
-    GraphicsHelperClass *helper = 0;
-    if (item->type() == ItemType::GBand || item->type() == ItemType::GBox) {
-        auto box = static_cast<GraphicsBox*>(item);
-        helper = static_cast<GraphicsHelperClass*>(box);
-        emit itemDeleting(box, helper->itemInTree);
-    }
-    if (item->type() == ItemType::GLine) {
-        auto line = static_cast<GraphicsLine*>(item);
-        helper = static_cast<GraphicsHelperClass*>(line);
-        emit itemDeleting(line, helper->itemInTree);
-    }
+void GraphicsScene::removeItem(QGraphicsItem* item)
+{
+    auto helper = dynamic_cast<GraphicsHelperClass*>(item);
+    if (helper == nullptr)
+        return;
 
     QGraphicsScene::removeItem(item);
+
+    if (helper->itemInTree != nullptr) {
+        auto mw = MainWindow::instance();
+        auto treeWidget = mw->findChild<QTreeWidget*>("treeWidget");
+        auto actSaveReport = mw->findChild<QAction*>("actSaveReport");
+
+        auto treeItem = helper->itemInTree;
+
+        auto itemAbove = treeWidget->itemAbove(treeItem);
+        if (itemAbove == nullptr)
+            return;
+
+        auto parent = treeItem->parent();
+        while (treeItem->childCount() > 0) {
+            auto tmp = treeItem->takeChild(0);
+            tmp = nullptr;
+            delete tmp;
+        }
+        int index = parent->indexOfChild(treeItem);
+        delete parent->takeChild(index);
+
+        treeWidget->setCurrentItem(itemAbove);
+        actSaveReport->setEnabled(true);
+
+        //Корректируем расположение бэндов
+        auto reportBand = qgraphicsitem_cast<ReportBand *>(item);
+        if (reportBand == nullptr)
+            return;
+
+        auto repPage = qobject_cast<RepScrollArea *>(this->parent());
+        repPage->correctBandGeom(reportBand);
+
+        mw->checkAddBandPermission();
+    }
 }
 
-void GraphicsScene::itemResizing(QGraphicsItem *item) {
+void GraphicsScene::itemResizing(QGraphicsItem *item)
+{
     emit itemResized(item);
 }
 
-void GraphicsScene::itemMoving(QGraphicsItem *item) {
+void GraphicsScene::itemMoving(QGraphicsItem *item)
+{
     if (m_trackingMoves) {
-        bool founded = false;
-        QList<ItemsAndParams>::iterator i;
-        for (i = m_movedItems.begin(); i != m_movedItems.end(); ++i)
-            if ((*i).item == item)
-                founded = true;
+        auto found = std::find_if(m_movedItems.cbegin(), m_movedItems.cend(), [&item](const ItemsAndParams &elem)
+        {
+            return elem.item == item;
+        });
 
-        if (!founded) {
+        if (found == m_movedItems.cend()) {
             ItemsAndParams param;
             param.item = item;
             param.oldPos = item->pos();
             if (item->type() == ItemType::GBox) {
-                GraphicsBox *box = static_cast<GraphicsBox*>(item);
+                auto box = static_cast<GraphicsBox*>(item);
                 param.oldHeight = box->getHeight();
                 param.oldWidth = box->getWidth();
             }
             if (item->type() == ItemType::GLine) {
-                GraphicsLine *line = static_cast<GraphicsLine*>(item);
+                auto line = static_cast<GraphicsLine*>(item);
                 param.oldPointList = line->getPointList();
             }
             m_movedItems.append(param);
@@ -295,8 +348,9 @@ void GraphicsScene::itemMoving(QGraphicsItem *item) {
     }
 }
 
-void GraphicsScene::unselectAll() {
-    for(auto item : this->items()) {
+void GraphicsScene::unselectAll()
+{
+    for (auto &item : this->items()) {
         if (item->type() == ItemType::GLine) {
             auto line = static_cast<GraphicsLine*>(item);
             line->setSelected(false);
@@ -306,35 +360,40 @@ void GraphicsScene::unselectAll() {
         } else if (item->type() == ItemType::GBand) {
             auto box = static_cast<GraphicsBox*>(item);
             box->setSelected(false);
-        } else
+        } else {
             item->setSelected(false);
+        }
     }
 }
 
-void GraphicsScene::drawBackground(QPainter *painter, const QRectF &rect) {
+void GraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
+{
     QGraphicsScene::drawBackground(painter,rect);
 
-    if (isShowGrid == false) return;
+    if (isShowGrid == false)
+        return;
+
     QColor c(200,200,255,125);
     painter->setPen(c);
-    const int gridSize = m_koef*m_gridStep;
-    QRectF rectView = this->views().at(0)->rect();
+    const int gridSize = m_koef * m_gridStep;
+    QRectF rectView = this->sceneRect();
 
-    qreal left = /*rect.left() +*/ -19 + m_leftM;
-    qreal top = /*rect.top() +*/ -193 + m_topM;
-    qreal bottom = rectView.height()-m_topM-m_bottomM+top;
+    qreal left = rectView.left() + m_leftM;
+    qreal top = rectView.top() + m_topM;
+    qreal bottom = rectView.height() - m_bottomM;
+    qreal right = rectView.width() - m_rightM;
 
     QVarLengthArray<QLineF, 100> lines;
-    painter->drawRect(left, top,
+	painter->drawRect(left, top,
                      rectView.width()-m_rightM-m_leftM,
                      rectView.height()-m_topM-m_bottomM);
 
     //vertical lines
-    for (qreal x = left; x <= rect.right()-m_rightM; x += gridSize)
+    for (qreal x = left; x <= right; x += gridSize)
         lines.append(QLineF(x, top, x, bottom));
     //horizontal lines
-    for (qreal y = top; y <= rect.bottom()-m_bottomM; y += gridSize)
-        lines.append(QLineF(rect.left()+m_leftM, y, rect.right()-m_rightM, y));
+    for (qreal y = top; y <= bottom; y += gridSize)
+        lines.append(QLineF(left, y, right, y));
 
     painter->drawLines(lines.data(), lines.size());
 }

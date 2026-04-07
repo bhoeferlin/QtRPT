@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef EDITFLDDLG_H
-#define EDITFLDDLG_H
+#pragma once
 
 #include <QDialog>
 #include <QTextCharFormat>
+#include <QTableWidgetItem>
 #include "FldPropertyDlg.h"
-#include "selectcolor.h"
+#include "XYZ_ColorSelector.h"
 #include "Barcode.h"
 
 namespace Ui {
@@ -39,7 +39,7 @@ class EditFldDlg : public QDialog
     Q_OBJECT
 
 public:
-    explicit EditFldDlg(QWidget *parent = 0);
+    explicit EditFldDlg(QWidget *parent = nullptr);
     ~EditFldDlg();
     int showText(QGraphicsItem *gItem);
     int showTextRich(QGraphicsItem *gItem);
@@ -57,6 +57,8 @@ private:
     QString m_cond_printing;
     QString m_cond_higlighting;
     QString m_imgFormat;
+    SPtrQChart m_chart;
+    void fillSeriesTbl();
 
 private slots:
     void loadImage();
@@ -66,20 +68,18 @@ private slots:
     void backGroundToggled(bool value);
     void conditionChanged(const QString &text);
     void chooseColor();
+    void fontSelect();
     void encodeHighLightingString();
     void decodeHighLightingString();
     void autoFillData(bool value);
-    void selectGraphColor();
-    void moveRow();
-    void itemSelectionChanged();
-    void removeRow();
-    void addRow();
     void setScaledContents(bool value);
     void update_preview();
     void textDirection();
-    void setCrossTabRowCount(int value);
-    void setCrossTabColCount(int value);
+    void chartTypeChanged(int index);
+    void removeSeries();
+    void addSeries();
+    void seriesValue();
+    void seriesDoubleClicked(QTableWidgetItem *item);
+    int showSeries(QAbstractSeries *abstrSeries, int barSetNo);
 
 };
-
-#endif // EDITFLDDLG_H

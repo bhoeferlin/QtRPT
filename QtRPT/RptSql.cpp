@@ -1,12 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Web-site: http://www.qtrpt.tk
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
 Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,59 +22,90 @@ limitations under the License.
 */
 
 #include "RptSql.h"
-#include <QTextCodec>
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+    #include <QTextCodec>
+#endif
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QImage>
 
-RptSql::RptSql(QString dbType, QString dbName, QString dbHost, QString dbUser, QString dbPassword, int dbPort, QString dbConnectionName, QObject *parent) : QObject(parent) {
+RptSql::RptSql(QObject *parent)
+    : RptDsAbstract(parent)
+{
     /*#ifdef QT_DEBUG
       qDebug() << "Running a debug build";
     #else
       qDebug() << "Running a release build";
     #endif*/
-
-    db = QSqlDatabase::addDatabase(dbType, dbConnectionName.isEmpty() ? QLatin1String(QSqlDatabase::defaultConnection) : dbConnectionName);
-    db.setDatabaseName(dbName);
-    db.setHostName(dbHost);
-    db.setUserName(dbUser);
-    db.setPassword(dbPassword);
-    if(dbPort)
-        db.setPort(dbPort);
 }
 
-bool RptSql::openQuery(QString sql, QString dbCoding, QString charsetCoding) {
+bool RptSql::openQuery()
+{
+    QString sql = m_sqlConnection.sqlQuery;
+    QString dbCoding = m_sqlConnection.dbCoding;
+    QString charsetCoding = m_sqlConnection.charsetCoding;
+
     db.open();
-    if (!db.isOpen()) {
-        qDebug() << "Failed open DB";
-        qDebug()<<db.lastError().text();
-    } else {
+    if (!db.isOpen())
+        qDebug() << "Failed open DB" << db.lastError().text();
+    else
         qDebug() << "open DB";
-    }
 
     query = new QSqlQuery(db);
-    if (!dbCoding.isEmpty()) {
+    if (!dbCoding.isEmpty())
         if (db.driverName().contains("MYSQL"))
             query->exec("set names '"+dbCoding+"'");
-    }
+
+    #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
     if (!charsetCoding.isEmpty()) {
-        QTextCodec *codec;
-        codec = QTextCodec::codecForName( QString(charsetCoding).toLocal8Bit().constData() );
+        auto codec = QTextCodec::codecForName( QString(charsetCoding).toLocal8Bit().constData() );
         QTextCodec::setCodecForLocale(codec);
     }
+    #endif
 
     if (!query->exec(sql)) {
-        qDebug()<<query->lastError().text();
+        qDebug() << query->lastError().text();
         return false;
+    }
+
+    if (query->isActive()) {
+        query->last();
+        m_recCount = query->at()+1;
+        query->seek(0);
+
+        // Get column's count
+        auto record = query->record();
+        for (int f = 0; f < record.count(); ++f)
+            m_columns << record.fieldName(f);
+
+        query->seek(0);
+        for (int row = 0; row < m_recCount; row++) {
+            QStringList valueList;
+            auto record = query->record();
+
+            for (int f = 0; f < m_columns.size(); f++)
+                valueList << query->record().value(f).toString();
+
+            m_data << valueList;
+            query->next();
+        }
+
+        query->seek(0);
+    } else {
+        m_recCount = 0;
     }
 
     return true;
 }
 
-QString RptSql::getFieldValue(QString fieldName, int recNo) {
-    if (query->isActive()){
-        if (recNo >= getRecordCount()) {
+QString RptSql::getFieldValue(QString fieldName, int recNo)
+{
+    if (query->isActive()) {
+        if (fieldName == "fieldName")
+            return "as";
+
+        if (recNo >= m_recCount) {
             qDebug() << "recNo more than recordCount";
             return "";
         } else {
@@ -88,8 +119,9 @@ QString RptSql::getFieldValue(QString fieldName, int recNo) {
     }
 }
 
-QImage RptSql::getFieldImage(QString fieldName, int recNo) {
-    if (query->isActive()){
+QImage RptSql::getFieldImage(QString fieldName, int recNo)
+{
+    if (query->isActive()) {
         if (recNo >= getRecordCount()) {
             qDebug() << "recNo more than recordCount";
             return QImage();
@@ -104,9 +136,36 @@ QImage RptSql::getFieldImage(QString fieldName, int recNo) {
     }
 }
 
-int RptSql::getRecordCount() {
-    if (query->isActive()){
-        query->last();
-        return query->at()+1;
-    } else return 0;
+void RptSql::loadXML(QDomElement dsElement)
+{
+    m_dsName                         = dsElement.attribute("name");
+    m_sqlConnection.dsName           = dsElement.attribute("name");
+    m_sqlConnection.dbType           = dsElement.attribute("dbType");
+    m_sqlConnection.dbName           = dsElement.attribute("dbName");
+    m_sqlConnection.dbHost           = dsElement.attribute("dbHost");
+    m_sqlConnection.dbUser           = dsElement.attribute("dbUser");
+    m_sqlConnection.dbPassword       = dsElement.attribute("dbPassword");
+    m_sqlConnection.dbCoding         = dsElement.attribute("dbCoding");
+    m_sqlConnection.charsetCoding    = dsElement.attribute("charsetCoding");
+    m_sqlConnection.sqlQuery         = dsElement.text().trimmed();
+    m_sqlConnection.dbPort           = dsElement.attribute("dbPort").toInt();
+    m_sqlConnection.dbConnectionName = dsElement.attribute("dbConnectionName");
+
+    setConnection(m_sqlConnection);
+}
+
+void RptSql::setConnection(RptSqlConnection sqlConnection)
+{
+    m_sqlConnection = sqlConnection;
+
+    db = QSqlDatabase::addDatabase(m_sqlConnection.dbType, m_sqlConnection.dbConnectionName.isEmpty() ? QLatin1String(QSqlDatabase::defaultConnection) : m_sqlConnection.dbConnectionName);
+    db.setDatabaseName(m_sqlConnection.dbName);
+    db.setHostName(m_sqlConnection.dbHost);
+    db.setUserName(m_sqlConnection.dbUser);
+    db.setPassword(m_sqlConnection.dbPassword);
+    if (m_sqlConnection.dbPort)
+        db.setPort(m_sqlConnection.dbPort);
+
+    this->setObjectName(m_sqlConnection.dsName);
+    m_dsName = m_sqlConnection.dsName;
 }

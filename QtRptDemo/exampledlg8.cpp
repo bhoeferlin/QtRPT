@@ -1,11 +1,12 @@
 /*
 Name: QtRpt
-Version: 2.0.0
-Programmer: Aleksey Osipov
+Version: 3.1.1
+Web-site: https://qtrpt.sourceforge.io
+Programmer: Oleksii Osypov
 E-mail: aliks-os@ukr.net
-2012-2016
+Web-site: http://www.aliks-os.tk
 
-Copyright 2012-2016 Aleksey Osipov
+Copyright 2012-2025 Oleksii Osypov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +26,9 @@ limitations under the License.
 #include <QDir>
 #include <QDebug>
 
-ExampleDlg8::ExampleDlg8(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleDlg8) {
+ExampleDlg8::ExampleDlg8(QWidget *parent)
+: QDialog(parent), ui(new Ui::ExampleDlg8)
+{
     ui->setupUi(this);
 
     QObject::connect(ui->btnPrint, SIGNAL(clicked()), this, SLOT(print()));
@@ -179,7 +182,8 @@ ExampleDlg8::ExampleDlg8(QWidget *parent) : QDialog(parent), ui(new Ui::ExampleD
     ui->tableWidget->setItem(15,1,newItem);
 }
 
-void ExampleDlg8::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) {
+void ExampleDlg8::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage)
+{
     Q_UNUSED(reportPage);
 
     if (paramName == "Text") {
@@ -188,23 +192,32 @@ void ExampleDlg8::setValue(const int recNo, const QString paramName, QVariant &p
     }
 }
 
-void ExampleDlg8::print() {
+void ExampleDlg8::setDSInfo(DataSetInfo &dsInfo)
+{
+    dsInfo.recordCount = ui->tableWidget->rowCount();
+}
+
+void ExampleDlg8::print()
+{
     QDir dir(qApp->applicationDirPath());
     #if defined(Q_OS_MAC)
         dir.cd(QFile::decodeName("../Resources"));
     #endif
 
     QString fileName = dir.absolutePath()+"/examples_report/example8.xml";
-    report = new QtRPT(this);
-    report->recordCount << ui->tableWidget->rowCount();
-    if (report->loadReport(fileName) == false) {
+    auto report = QtRPT::createSPtr(this);
+
+    if (report->loadReport(fileName) == false)
         qDebug()<<"Report file not found";
-    }
-    QObject::connect(report, SIGNAL(setValue(const int, const QString, QVariant&, const int)),
+
+    QObject::connect(report.data(), SIGNAL(setValue(const int, const QString, QVariant&, const int)),
                      this, SLOT(setValue(const int, const QString, QVariant&, const int)));
+    QObject::connect(report.data(), SIGNAL(setDSInfo(DataSetInfo &)),
+                     this, SLOT(setDSInfo(DataSetInfo &)));
     report->printExec();
 }
 
-ExampleDlg8::~ExampleDlg8() {
+ExampleDlg8::~ExampleDlg8()
+{
     delete ui;
 }

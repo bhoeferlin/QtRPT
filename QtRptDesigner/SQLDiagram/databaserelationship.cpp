@@ -30,9 +30,9 @@ public:
 	PrivateData() :
 		onUpdateAction(NoAction),
 		onDeleteAction(NoAction),
-		childColumn(0),
-		parentColumn(0)
-	{
+        childColumn(nullptr),
+        parentColumn(nullptr)
+{
 		if (!pathsInitialized) {
 			pathsInitialized = true;
 
@@ -93,42 +93,49 @@ public:
 bool DatabaseRelationship::PrivateData::pathsInitialized = false;
 QPainterPath DatabaseRelationship::PrivateData::paths[5];
 
-DatabaseRelationship::DatabaseRelationship(DiagramItem *parent) : Line(parent), d(new PrivateData) {
+DatabaseRelationship::DatabaseRelationship(DiagramItem *parent) : Line(parent), d(new PrivateData)
+{
 	setFlag(ItemIsSelectable);
 }
 
-DatabaseRelationship::~DatabaseRelationship() {
+DatabaseRelationship::~DatabaseRelationship()
+{
 	delete d;
 }
 
-Column *DatabaseRelationship::childColumn() const {
+Column *DatabaseRelationship::childColumn() const
+{
 	return d->childColumn;
 }
 
-void DatabaseRelationship::setChildColumn(Column *column) {
+void DatabaseRelationship::setChildColumn(Column *column)
+{
 	if (d->childColumn != column) {
 		d->childColumn = column;
-        emit propertyChanged("childColumn", qVariantFromValue<Column*>(column));
+        emit propertyChanged("childColumn", QVariant::fromValue<Column*>(column));
 		static_cast<DatabaseTable *>(connector(0)->hub()->owner())->updateLayout();
 		updateLayout();
 		update();
 	}
 }
 
-Column *DatabaseRelationship::parentColumn() const {
+Column *DatabaseRelationship::parentColumn() const
+{
 	return d->parentColumn;
 }
 
-void DatabaseRelationship::setParentColumn(Column *column) {
+void DatabaseRelationship::setParentColumn(Column *column)
+{
 	if (d->parentColumn != column) {
 		d->parentColumn = column;
-        emit propertyChanged("parentColumn", qVariantFromValue<Column*>(column));
+        emit propertyChanged("parentColumn", QVariant::fromValue<Column*>(column));
 		updateLayout();
 		update();
 	}
 }
 
-bool DatabaseRelationship::isIdentifying() const {
+bool DatabaseRelationship::isIdentifying() const
+{
 	DatabaseTable *table = childTable();
 	if (table) {
 		Column *column = childColumn();
@@ -139,14 +146,16 @@ bool DatabaseRelationship::isIdentifying() const {
 	return false;
 }
 
-QVariant DatabaseRelationship::itemChange(GraphicsItemChange change, const QVariant &value) {
-	if (change == ItemSceneHasChanged) {
+QVariant DatabaseRelationship::itemChange(GraphicsItemChange change, const QVariant &value)
+{
+    if (change == ItemSceneHasChanged)
 		updateLayout();
-	}
+
 	return QGraphicsItem::itemChange(change, value);
 }
 
-void DatabaseRelationship::updateEnds() {
+void DatabaseRelationship::updateEnds()
+{
 	if (!document())
 		return;
 
@@ -157,7 +166,8 @@ void DatabaseRelationship::updateEnds() {
     setLineStyle(Qt::SolidLine);
 }
 
-void DatabaseRelationship::updateLayout() {
+void DatabaseRelationship::updateLayout()
+{
 	prepareGeometryChange();
 
     Connector *connector1 = connector(0);
@@ -178,12 +188,25 @@ void DatabaseRelationship::updateLayout() {
 		QLineF line2 = QLineF::fromPolar(1, a2).translated(p2);
 		QPointF intersection;
 		line << p1;
-		if (line1.intersect(line2, &intersection) != QLineF::NoIntersection) {
+
+        #if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
+            auto interSect = line1.intersects(line2, &intersection);
+        #else
+            auto interSect = line1.intersect(line2, &intersection);
+        #endif
+
+        if (interSect != QLineF::NoIntersection) {
 			// 2-segment line
 			line << intersection;
 		}
 		else {
-			if (line1.intersect(line2.normalVector(), &intersection) != QLineF::NoIntersection) {
+            #if QT_VERSION >= QT_VERSION_CHECK(5,14,0)
+                auto interSect = line1.intersects(line2.normalVector(), &intersection);
+            #else
+                auto interSect = line1.intersect(line2.normalVector(), &intersection);
+            #endif
+
+            if (interSect != QLineF::NoIntersection) {
 				// 3-segment line
 				qreal len = QLineF(p1, intersection).length() * 0.5;
 				line << QLineF::fromPolar(len, a1).translated(p1).p2();
@@ -209,7 +232,8 @@ void DatabaseRelationship::updateLayout() {
 	updateEnds();
 }
 
-void DatabaseRelationship::loadFromXml(QDomElement element, DiagramDocument *document) {
+void DatabaseRelationship::loadFromXml(QDomElement element, DiagramDocument *document)
+{
     Line::loadFromXml(element, document);
 
     if (element.hasAttribute("columns_child") &&
@@ -222,7 +246,8 @@ void DatabaseRelationship::loadFromXml(QDomElement element, DiagramDocument *doc
     }
 }
 
-void DatabaseRelationship::saveToXml(QDomElement element, QDomDocument doc) {
+void DatabaseRelationship::saveToXml(QDomElement element, QDomDocument doc)
+{
     Line::saveToXml(element,doc);
 
     if (d->childColumn)
