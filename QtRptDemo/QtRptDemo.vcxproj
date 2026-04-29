@@ -1,0 +1,365 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid></ProjectGuid>
+    <RootNamespace>QtRptDemo</RootNamespace>
+    <Keyword>QtVS_v304</Keyword>
+  <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion><QtMsBuild Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <PlatformToolset>v142</PlatformToolset>
+    <OutputDirectory>..\bin\release\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>tmp-win32\</IntermediateDirectory>
+    <PrimaryOutput>QtRptDemo</PrimaryOutput>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /><Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')"><Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." /></Target>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" /><ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')"><Import Project="$(QtMsBuild)\qt_defaults.props" /></ImportGroup><PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"><OutDir>..\bin\release\</OutDir><IntDir>tmp-win32\</IntDir><TargetName>QtRptDemo</TargetName><IgnoreImportLibrary>true</IgnoreImportLibrary><LinkIncremental>false</LinkIncremental><PostBuildEventUseInBuild>true</PostBuildEventUseInBuild></PropertyGroup><PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"><QtInstall>5.15.2_msvc2019</QtInstall><QtModules>core;xml;sql;network;gui;widgets;qml;printsupport;charts</QtModules></PropertyGroup><ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')"><Import Project="$(QtMsBuild)\qt.props" /></ImportGroup>
+  
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\CommonFiles;..\3rdparty\zint-2.4.4\backend_qt4;..\3rdparty\zint-2.4.4\backend;..\3rdparty\QtXlsx;..\QtRPT;tmp-win32;/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zc:rvalueCast -Zc:inline -Zc:strictStrings -Zc:throwingNew -Zc:referenceBinding -Zc:__cplusplus -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>tmp-win32\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <DisableSpecificWarnings>4577;4467;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>tmp-win32\</ObjectFileName>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;HAVE_QT5;HAVE_QT5;QXLSX_LIBRARY;NDEBUG;QT_NO_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <ProgramDataBaseFileName></ProgramDataBaseFileName>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+    <MultiProcessorCompilation>true</MultiProcessorCompilation></ClCompile>
+    <Link>
+      <AdditionalDependencies>QtZint.lib;QtXlsx.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Projects\QtRptProject\bin\release\lib;C:\opensslx86\lib;C:\Utils\my_sql\mysql-5.7.25-win32\lib;C:\Utils\postgresqlx86\pgsql\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <LinkIncremental>false</LinkIncremental>
+      <OptimizeReferences>true</OptimizeReferences>
+      <OutputFile>$(OutDir)\QtRptDemo.exe</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;HAVE_QT5;HAVE_QT5;QXLSX_LIBRARY;NDEBUG;QT_NO_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <PostBuildEvent>
+      <Command>xcopy /sy ".\examples\*" "D:\Projects\QtRptProject\QtRPT\..\bin\release\"</Command>
+      <Message>xcopy /sy ".\examples\*" "D:\Projects\QtRptProject\QtRPT\..\bin\release\"</Message>
+    </PostBuildEvent>
+  <QtMoc><CompilerFlavor>msvc</CompilerFlavor><Include>./tmp-$(Platform)/moc_predefs.h</Include><ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription><DynamicSource>output</DynamicSource><QtMocDir>tmp-$(Platform)</QtMocDir><QtMocFileName>moc_%(Filename).cpp</QtMocFileName></QtMoc><QtRcc><Compression>default</Compression><ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription><QtRccDir>tmp-$(Platform)</QtRccDir><QtRccFileName>qrc_%(Filename).cpp</QtRccFileName></QtRcc><QtUic><ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription><QtUicDir>tmp-$(Platform)</QtUicDir><QtUicFileName>ui_%(Filename).h</QtUicFileName></QtUic></ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\CommonFiles\Barcode.cpp" />
+    <ClCompile Include="..\CommonFiles\CommonClasses.cpp" />
+    <ClCompile Include="..\QtRPT\RptBandObject.cpp" />
+    <ClCompile Include="..\QtRPT\RptCrossTabObject.cpp" />
+    <ClCompile Include="..\QtRPT\RptDsAbstract.cpp" />
+    <ClCompile Include="..\QtRPT\RptDsInline.cpp" />
+    <ClCompile Include="..\QtRPT\RptDsPlugin.cpp" />
+    <ClCompile Include="..\QtRPT\RptFieldObject.cpp" />
+    <ClCompile Include="..\QtRPT\RptPageObject.cpp" />
+    <ClCompile Include="..\QtRPT\RptScriptEngine.cpp" />
+    <ClCompile Include="..\QtRPT\RptSql.cpp" />
+    <ClCompile Include="exampledlg1.cpp" />
+    <ClCompile Include="exampledlg13.cpp" />
+    <ClCompile Include="exampledlg14.cpp" />
+    <ClCompile Include="exampledlg2.cpp" />
+    <ClCompile Include="exampledlg3.cpp" />
+    <ClCompile Include="exampledlg4.cpp" />
+    <ClCompile Include="exampledlg5.cpp" />
+    <ClCompile Include="exampledlg6.cpp" />
+    <ClCompile Include="exampledlg8.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="mainwindow.cpp" />
+    <ClCompile Include="..\CommonFiles\numbertoarabicword.cpp" />
+    <ClCompile Include="..\QtRPT\qtrpt.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="..\CommonFiles\Barcode.h">
+      
+      
+      
+      
+    </QtMoc>
+    <ClInclude Include="..\CommonFiles\CommonClasses.h" />
+    <QtMoc Include="..\QtRPT\RptBandObject.h">
+      
+      
+      
+      
+    </QtMoc>
+    <ClInclude Include="..\QtRPT\RptCrossTabObject.h" />
+    <QtMoc Include="..\QtRPT\RptDsAbstract.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptDsInline.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptDsPlugin.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptFieldObject.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptPageObject.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptScriptEngine.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptSql.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg1.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg13.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg14.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg2.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg3.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg4.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg5.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg6.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="exampledlg8.h">
+      
+      
+      
+      
+    </QtMoc>
+    <QtMoc Include="mainwindow.h">
+      
+      
+      
+      
+    </QtMoc>
+    <ClInclude Include="..\CommonFiles\numbertoarabicword.h" />
+    <QtMoc Include="..\QtRPT\qtrpt.h">
+      
+      
+      
+      
+    </QtMoc>
+    <ClInclude Include="..\QtRPT\qtrptnamespace.h" />
+  </ItemGroup>
+  <ItemGroup>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <CustomBuild Include="tmp-win32\moc_predefs.h.cbt">
+      <FileType>Document</FileType>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\mkspecs\features\data\dummy.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl -Bx"$(QTDIR)\bin\qmake.exe" -nologo -Zc:wchar_t -FS -Zc:rvalueCast -Zc:inline -Zc:strictStrings -Zc:throwingNew -Zc:referenceBinding -Zc:__cplusplus -O2 -MD -W3 -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 -wd4577 -wd4467 -E $(QTDIR)\mkspecs\features\data\dummy.cpp 2&gt;NUL &gt;tmp-win32\moc_predefs.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generate moc_predefs.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp-win32\moc_predefs.h;%(Outputs)</Outputs>
+    </CustomBuild>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="exampledlg1.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg13.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg14.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg2.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg3.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg4.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg5.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg6.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="exampledlg8.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+    <QtUic Include="mainwindow.ui">
+      
+      
+      
+      
+      
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Logo128.png" />
+    <None Include="..\QtRptDesigner\images\QtRptDesigner.ico" />
+    <None Include="..\QtRPT\excel.png" />
+    <None Include="..\QtRPT\html.png" />
+    <QtRcc Include="..\QtRPT\imagesRpt.qrc">
+      
+      
+      
+      
+      
+    <InitFuncName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">imagesRpt</InitFuncName></QtRcc>
+    <None Include="..\QtRPT\pdf.png" />
+    <QtRcc Include="resurce.qrc">
+      
+      
+      
+      
+      
+    <InitFuncName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">resurce</InitFuncName></QtRcc>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /><ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')"><Import Project="$(QtMsBuild)\qt.targets" /></ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

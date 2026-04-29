@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid></ProjectGuid>
+    <RootNamespace>QtZint</RootNamespace>
+    <Keyword>QtVS_v304</Keyword>
+  <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion><QtMsBuild Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <PlatformToolset>v142</PlatformToolset>
+    <OutputDirectory>..\..\..\bin\release\lib\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <IntermediateDirectory>tmp-win32\</IntermediateDirectory>
+    <PrimaryOutput>QtZint</PrimaryOutput>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /><Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')"><Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." /></Target>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" /><ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')"><Import Project="$(QtMsBuild)\qt_defaults.props" /></ImportGroup><PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"><OutDir>..\..\..\bin\release\lib\</OutDir><IntDir>tmp-win32\</IntDir><TargetName>QtZint</TargetName><IgnoreImportLibrary>true</IgnoreImportLibrary><LinkIncremental>false</LinkIncremental><PostBuildEventUseInBuild>true</PostBuildEventUseInBuild></PropertyGroup><PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"><QtInstall>5.15.2_msvc2019</QtInstall><QtModules>core;gui</QtModules></PropertyGroup><ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')"><Import Project="$(QtMsBuild)\qt.props" /></ImportGroup>
+  
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\backend;zint;zint/backend;zint/backend_qt4;tmp-win32;/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zc:rvalueCast -Zc:inline -Zc:strictStrings -Zc:throwingNew -Zc:referenceBinding -Zc:__cplusplus -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>tmp-win32\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <DisableSpecificWarnings>4577;4467;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>tmp-win32\</ObjectFileName>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;NO_PNG;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;ZINT_VERSION="";QZINT_LIBRARY;_CRT_SECURE_NO_WARNINGS;QXLSX_LIBRARY;NDEBUG;QT_NO_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <ProgramDataBaseFileName></ProgramDataBaseFileName>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+    <MultiProcessorCompilation>true</MultiProcessorCompilation></ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <LinkDLL>true</LinkDLL>
+      <LinkIncremental>false</LinkIncremental>
+      <OptimizeReferences>true</OptimizeReferences>
+      <OutputFile>$(OutDir)\QtZint.dll</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;_UNICODE;WIN32;_ENABLE_EXTENDED_ALIGNED_STORAGE;NO_PNG;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;ZINT_VERSION=\"\";QZINT_LIBRARY;_CRT_SECURE_NO_WARNINGS;QXLSX_LIBRARY;NDEBUG;QT_NO_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" ..\..\..\bin\release\</Command>
+      <Message>Copy QtZint.dll to ..\..\..\bin\release\</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\backend\2of5.c" />
+    <ClCompile Include="..\backend\auspost.c" />
+    <ClCompile Include="..\backend\aztec.c" />
+    <ClCompile Include="..\backend\code.c" />
+    <ClCompile Include="..\backend\code1.c" />
+    <ClCompile Include="..\backend\code128.c" />
+    <ClCompile Include="..\backend\code16k.c" />
+    <ClCompile Include="..\backend\code49.c" />
+    <ClCompile Include="..\backend\common.c" />
+    <ClCompile Include="..\backend\composite.c" />
+    <ClCompile Include="..\backend\dllversion.c" />
+    <ClCompile Include="..\backend\dmatrix.c" />
+    <ClCompile Include="..\backend\gridmtx.c" />
+    <ClCompile Include="..\backend\gs1.c" />
+    <ClCompile Include="..\backend\imail.c" />
+    <ClCompile Include="..\backend\large.c" />
+    <ClCompile Include="..\backend\library.c" />
+    <ClCompile Include="..\backend\maxicode.c" />
+    <ClCompile Include="..\backend\medical.c" />
+    <ClCompile Include="..\backend\pdf417.c" />
+    <ClCompile Include="..\backend\plessey.c" />
+    <ClCompile Include="..\backend\png.c" />
+    <ClCompile Include="..\backend\postal.c" />
+    <ClCompile Include="..\backend\ps.c" />
+    <ClCompile Include="..\backend\qr.c" />
+    <ClCompile Include="qzint.cpp" />
+    <ClCompile Include="..\backend\reedsol.c" />
+    <ClCompile Include="..\backend\render.c" />
+    <ClCompile Include="..\backend\rss.c" />
+    <ClCompile Include="..\backend\svg.c" />
+    <ClCompile Include="..\backend\telepen.c" />
+    <ClCompile Include="..\backend\upcean.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\backend\aztec.h" />
+    <ClInclude Include="..\backend\code1.h" />
+    <ClInclude Include="..\backend\code49.h" />
+    <ClInclude Include="..\backend\common.h" />
+    <ClInclude Include="..\backend\composite.h" />
+    <ClInclude Include="..\backend\dmatrix.h" />
+    <ClInclude Include="..\backend\font.h" />
+    <ClInclude Include="..\backend\gb2312.h" />
+    <ClInclude Include="..\backend\gridmtx.h" />
+    <ClInclude Include="..\backend\gs1.h" />
+    <ClInclude Include="..\backend\large.h" />
+    <ClInclude Include="..\backend\maxicode.h" />
+    <ClInclude Include="..\backend\maxipng.h" />
+    <ClInclude Include="..\backend\ms_stdint.h" />
+    <ClInclude Include="..\backend\pdf417.h" />
+    <ClInclude Include="..\backend\qr.h" />
+    <ClInclude Include="qzint.h" />
+    <ClInclude Include="qzint_global.h" />
+    <ClInclude Include="..\backend\reedsol.h" />
+    <ClInclude Include="..\backend\rss.h" />
+    <ClInclude Include="..\backend\sjis.h" />
+    <ClInclude Include="..\backend\zint.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="tmp-win32\moc_predefs.h.cbt">
+      <FileType>Document</FileType>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\mkspecs\features\data\dummy.cpp;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl -Bx"$(QTDIR)\bin\qmake.exe" -nologo -Zc:wchar_t -FS -Zc:rvalueCast -Zc:inline -Zc:strictStrings -Zc:throwingNew -Zc:referenceBinding -Zc:__cplusplus -O2 -MD -W3 -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 -wd4577 -wd4467 -E $(QTDIR)\mkspecs\features\data\dummy.cpp 2&gt;NUL &gt;tmp-win32\moc_predefs.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generate moc_predefs.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp-win32\moc_predefs.h;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /><ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')"><Import Project="$(QtMsBuild)\qt.targets" /></ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

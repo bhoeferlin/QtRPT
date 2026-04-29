@@ -1,0 +1,271 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="xlsxabstractooxmlfile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxabstractsheet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcellformula.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcellrange.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcellreference.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxchart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxchartsheet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcolor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxconditionalformatting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxcontenttypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdatavalidation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdocpropsapp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdocpropscore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdocument.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdrawing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxdrawinganchor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxformat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxmediafile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxnumformatparser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxrelationships.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxrichstring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxsharedstrings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxsimpleooxmlfile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxstyles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxtheme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxutility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxworkbook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxworksheet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxzipreader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xlsxzipwriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="xlsxabstractooxmlfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxabstractooxmlfile_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxabstractsheet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxabstractsheet_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcell_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcellformula.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcellformula_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcellrange.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcellreference.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxchart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxchart_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxchartsheet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxchartsheet_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcolor_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxconditionalformatting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxconditionalformatting_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxcontenttypes_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdatavalidation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdatavalidation_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdocpropsapp_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdocpropscore_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <QtMoc Include="xlsxdocument.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <ClInclude Include="xlsxdocument_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdrawing_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxdrawinganchor_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxformat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxformat_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxglobal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxmediafile_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxnumformatparser_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxrelationships_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxrichstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxrichstring_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxsharedstrings_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxsimpleooxmlfile_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxstyles_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxtheme_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxutility_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxworkbook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxworkbook_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxworksheet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxworksheet_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxzipreader_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xlsxzipwriter_p.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="debug\moc_predefs.h.cbt">
+      <Filter>Generated Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="release\moc_predefs.h.cbt">
+      <Filter>Generated Files</Filter>
+    </CustomBuild>
+    
+    
+  </ItemGroup>
+</Project>

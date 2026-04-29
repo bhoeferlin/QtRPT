@@ -1,0 +1,267 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\CommonFiles\Barcode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CommonFiles\CommonClasses.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptBandObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptCrossTabObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptDsAbstract.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptDsInline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptDsPlugin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptFieldObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptPageObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptScriptEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\RptSql.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg13.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg14.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg6.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="exampledlg8.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mainwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CommonFiles\numbertoarabicword.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\QtRPT\qtrpt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="..\CommonFiles\Barcode.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <ClInclude Include="..\CommonFiles\CommonClasses.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <QtMoc Include="..\QtRPT\RptBandObject.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <ClInclude Include="..\QtRPT\RptCrossTabObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <QtMoc Include="..\QtRPT\RptDsAbstract.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptDsInline.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptDsPlugin.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptFieldObject.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptPageObject.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptScriptEngine.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\QtRPT\RptSql.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg1.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg13.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg14.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg2.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg3.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg4.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg5.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg6.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="exampledlg8.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="mainwindow.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <ClInclude Include="..\CommonFiles\numbertoarabicword.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <QtMoc Include="..\QtRPT\qtrpt.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <ClInclude Include="..\QtRPT\qtrptnamespace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <CustomBuild Include="tmp-win32\moc_predefs.h.cbt">
+      <Filter>Generated Files</Filter>
+    </CustomBuild>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="exampledlg1.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg13.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg14.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg2.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg3.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg4.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg5.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg6.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="exampledlg8.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="mainwindow.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Logo128.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\QtRptDesigner\images\QtRptDesigner.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\QtRPT\excel.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\QtRPT\html.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <QtRcc Include="..\QtRPT\imagesRpt.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+    <None Include="..\QtRPT\pdf.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <QtRcc Include="resurce.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+</Project>

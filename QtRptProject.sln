@@ -1,0 +1,51 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33801.468
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QtZint", "3rdparty\zint-2.4.4\backend_qt4\QtZint.vcxproj", "{32445974-9DCF-37F8-BE88-9620AEA7FF31}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QtXlsx", "3rdparty\QtXlsx\QtXlsx.vcxproj", "{9D83F976-4C86-39F3-BD39-55337C2AEF6C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QtRptDesigner", "QtRptDesigner\QtRptDesigner.vcxproj", "{2B511107-E03E-3D58-B2E5-ACA44B146937}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C} = {9D83F976-4C86-39F3-BD39-55337C2AEF6C}
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31} = {32445974-9DCF-37F8-BE88-9620AEA7FF31}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QtRptDemo", "QtRptDemo\QtRptDemo.vcxproj", "{91AE4FFE-2F6D-33E2-8926-FDCEC9DE6BFB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31} = {32445974-9DCF-37F8-BE88-9620AEA7FF31}
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C} = {9D83F976-4C86-39F3-BD39-55337C2AEF6C}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31}.Debug|Win32.ActiveCfg = Debug|Win32
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31}.Debug|Win32.Build.0 = Debug|Win32
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31}.Release|Win32.ActiveCfg = Release|Win32
+		{32445974-9DCF-37F8-BE88-9620AEA7FF31}.Release|Win32.Build.0 = Release|Win32
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C}.Debug|Win32.Build.0 = Debug|Win32
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C}.Release|Win32.ActiveCfg = Release|Win32
+		{9D83F976-4C86-39F3-BD39-55337C2AEF6C}.Release|Win32.Build.0 = Release|Win32
+		{2B511107-E03E-3D58-B2E5-ACA44B146937}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2B511107-E03E-3D58-B2E5-ACA44B146937}.Debug|Win32.Build.0 = Debug|Win32
+		{2B511107-E03E-3D58-B2E5-ACA44B146937}.Release|Win32.ActiveCfg = Release|Win32
+		{2B511107-E03E-3D58-B2E5-ACA44B146937}.Release|Win32.Build.0 = Release|Win32
+		{91AE4FFE-2F6D-33E2-8926-FDCEC9DE6BFB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{91AE4FFE-2F6D-33E2-8926-FDCEC9DE6BFB}.Debug|Win32.Build.0 = Debug|Win32
+		{91AE4FFE-2F6D-33E2-8926-FDCEC9DE6BFB}.Release|Win32.ActiveCfg = Release|Win32
+		{91AE4FFE-2F6D-33E2-8926-FDCEC9DE6BFB}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		Qt5Version = 5.15.2_msvc2019
+		SolutionGuid = {6AB11034-82B3-4555-AE40-F525A4B23AA5}
+	EndGlobalSection
+EndGlobal
